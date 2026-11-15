@@ -4,9 +4,81 @@
 
 body {
     margin: 0;
-    color: #1f2937;
-    background: #f3f4f6;
+    color: #4b84d4;
+    background: #bfc9db;
     font-family: Arial, sans-serif;
+}
+
+.landing-page {
+    min-height: 100vh;
+    color: #f8fbff;
+    background: linear-gradient(135deg, #102f59 0%, #145b91 55%, #147ca3 100%);
+}
+
+.landing-shell {
+    display: grid;
+    min-height: 100vh;
+    padding: 2rem;
+    place-items: center;
+}
+
+.landing-content {
+    width: min(100%, 760px);
+    padding: clamp(2rem, 7vw, 5rem);
+    text-align: center;
+}
+
+.landing-eyebrow {
+    margin: 0 0 1rem;
+    color: #b9e8f4;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.landing-content h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(2.4rem, 7vw, 4.5rem);
+    line-height: 1.08;
+}
+
+.landing-description {
+    max-width: 600px;
+    margin: 1.5rem auto 2rem;
+    color: #e2edf8;
+    font-size: clamp(1rem, 2.4vw, 1.2rem);
+    line-height: 1.7;
+}
+
+.landing-login {
+    display: inline-flex;
+    min-width: 150px;
+    min-height: 52px;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 1.6rem;
+    color: #123b5d;
+    background: #fff;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.landing-login:hover,
+.landing-login:focus-visible {
+    color: #fff;
+    background: transparent;
+    transform: translateY(-2px);
+}
+
+.landing-login:focus-visible {
+    outline: 3px solid #b9e8f4;
+    outline-offset: 4px;
 }
 
 .site-header,
@@ -63,8 +135,794 @@ button {
 
 .message-list {
     min-height: 12rem;
+    max-height: 28rem;
     padding: 1rem;
     border: 1px solid #d1d5db;
     border-radius: 4px;
     overflow-wrap: anywhere;
+    overflow-y: auto;
+}
+
+.dashboard-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+}
+
+.button,
+button {
+    display: inline-block;
+    padding: 0.65rem 1rem;
+    color: #fff;
+    background: #123b5d;
+    border: 0;
+    border-radius: 4px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.inline-form {
+    display: inline;
+    margin: 0;
+}
+
+.button-danger {
+    background: #a11;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #d1d5db;
+}
+
+.chat-panel {
+    display: grid;
+    gap: 1rem;
+}
+
+.message-bubble {
+    max-width: 80%;
+    margin: 0.5rem 0;
+    padding: 0.6rem 0.8rem;
+    background: #e5e7eb;
+    border-radius: 8px;
+}
+
+.message-bubble p {
+    margin: 0.35rem 0 0;
+    white-space: pre-wrap;
+}
+
+.message-own {
+    margin-left: auto;
+    background: #dbeafe;
+}
+
+.coach-dashboard {
+    --coach-ink: #25364a;
+    --coach-muted: #74839a;
+    --coach-blue: #2879d0;
+    --coach-teal: #17a89b;
+    min-height: 100vh;
+    color: var(--coach-ink);
+    background: #f3f8fc;
+    font-family: "Nunito Sans", Arial, sans-serif;
+}
+
+.coach-dashboard h1,
+.coach-dashboard h2,
+.coach-dashboard .coach-brand {
+    font-family: "Poppins", "Nunito Sans", Arial, sans-serif;
+}
+
+.coach-dashboard .coach-header {
+    position: sticky;
+    z-index: 5;
+    top: 0;
+    min-height: 76px;
+    padding: 0.8rem clamp(1rem, 5vw, 4rem);
+    color: var(--coach-ink);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 5px 22px rgba(37, 54, 74, 0.08);
+    backdrop-filter: blur(12px);
+}
+
+.coach-dashboard .coach-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--coach-ink);
+    font-size: 1.08rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.coach-brand-mark {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    color: #fff;
+    background: linear-gradient(135deg, #227be0, #17b6a2);
+    border-radius: 14px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    place-items: center;
+}
+
+.coach-dashboard .coach-header nav {
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.coach-dashboard .coach-header nav a {
+    padding: 0.65rem 1rem;
+    color: #506177;
+    border-radius: 999px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.coach-dashboard .coach-header nav a:hover,
+.coach-dashboard .coach-header nav a:focus-visible {
+    color: #1769bf;
+    background: #edf6ff;
+    transform: translateY(-1px);
+}
+
+.coach-dashboard .coach-header nav .coach-nav-active {
+    color: #1769bf;
+    background: #eaf4ff;
+}
+
+.coach-dashboard .coach-content {
+    width: min(100% - 2rem, 1180px);
+    min-height: 0;
+    margin: 2rem auto 4rem;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+}
+
+.coach-hero {
+    position: relative;
+    display: flex;
+    min-height: 250px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    padding: clamp(1.75rem, 5vw, 3.5rem);
+    color: #fff;
+    background: linear-gradient(120deg, #2479d0 0%, #168fc4 52%, #16ae9b 100%);
+    border-radius: 26px;
+    box-shadow: 0 18px 38px rgba(30, 117, 184, 0.2);
+    overflow: hidden;
+}
+
+.coach-hero::after {
+    position: absolute;
+    right: 12%;
+    bottom: -155px;
+    width: 320px;
+    height: 320px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 50%;
+    content: "";
+}
+
+.coach-hero-copy {
+    position: relative;
+    z-index: 1;
+}
+
+.coach-dashboard .coach-eyebrow {
+    margin: 0 0 0.45rem;
+    color: #168a8c;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.coach-hero .coach-eyebrow {
+    color: #d9f7f3;
+}
+
+.coach-hero h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.9rem, 4vw, 3rem);
+    line-height: 1.15;
+}
+
+.coach-hero-sport {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 1rem 0 0;
+    color: #e2f5ff;
+}
+
+.coach-hero-sport strong {
+    padding: 0.35rem 0.85rem;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+}
+
+.coach-hero-mark {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: clamp(110px, 17vw, 172px);
+    aspect-ratio: 1;
+    flex: 0 0 auto;
+    color: rgba(255, 255, 255, 0.92);
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50%;
+    font-family: "Poppins", sans-serif;
+    font-size: clamp(1rem, 2.4vw, 1.5rem);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    place-items: center;
+    transform: rotate(-10deg);
+}
+
+.coach-notice {
+    margin: 0 0 1.25rem;
+    padding: 0.9rem 1.1rem;
+    color: #17634e;
+    background: #e4f8ef;
+    border: 1px solid #b8ead1;
+    border-radius: 12px;
+    font-weight: 700;
+}
+
+.coach-dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(270px, 0.78fr) minmax(0, 1.5fr);
+    align-items: start;
+    gap: 1.25rem;
+}
+
+.coach-card {
+    min-width: 0;
+    padding: clamp(1.25rem, 2.5vw, 1.8rem);
+    background: #fff;
+    border: 1px solid #e8eff6;
+    border-radius: 20px;
+    box-shadow: 0 12px 30px rgba(37, 54, 74, 0.07);
+}
+
+.coach-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1.2rem;
+}
+
+.coach-section-heading h2 {
+    margin: 0;
+    color: var(--coach-ink);
+    font-size: 1.2rem;
+    line-height: 1.3;
+}
+
+.coach-section-heading .coach-eyebrow {
+    margin-bottom: 0.2rem;
+}
+
+.coach-section-icon {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    color: #087c55;
+    background: #e4f8ef;
+    border-radius: 14px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    place-items: center;
+}
+
+.roster-icon {
+    color: #1769bf;
+    background: #eaf4ff;
+    font-size: 1.25rem;
+}
+
+.coach-card-description {
+    margin: -0.5rem 0 1rem;
+    color: var(--coach-muted);
+    line-height: 1.5;
+}
+
+.coach-form-field {
+    margin-bottom: 0.9rem;
+}
+
+.coach-form-field label {
+    margin: 0 0 0.4rem;
+    color: #3b4e63;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.coach-form-field label span {
+    color: var(--coach-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.coach-form-field input {
+    display: block;
+    width: 100%;
+    padding: 0.78rem 0.9rem;
+    color: var(--coach-ink);
+    background: #f9fbfe;
+    border: 1px solid #dce6f0;
+    border-radius: 11px;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.coach-form-field input:focus {
+    background: #fff;
+    border-color: #3b91dc;
+    box-shadow: 0 0 0 4px rgba(59, 145, 220, 0.14);
+}
+
+.coach-dashboard .button {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.65rem 1rem;
+    border-radius: 11px;
+    font-weight: 800;
+    transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.coach-dashboard .button:hover,
+.coach-dashboard .button:focus-visible {
+    box-shadow: 0 7px 16px rgba(37, 54, 74, 0.16);
+    transform: translateY(-2px);
+}
+
+.coach-dashboard .button-add-player {
+    width: 100%;
+    margin-top: 0.25rem;
+    color: #fff;
+    background: #15966d;
+}
+
+.coach-dashboard .button-add-player:hover,
+.coach-dashboard .button-add-player:focus-visible {
+    background: #117d5b;
+}
+
+.coach-dashboard .button-message {
+    color: #fff;
+    background: #2879d0;
+}
+
+.coach-dashboard .button-message:hover,
+.coach-dashboard .button-message:focus-visible {
+    background: #1d64b0;
+}
+
+.coach-dashboard .button-drop {
+    color: #fff;
+    background: #e45c63;
+}
+
+.coach-dashboard .button-drop:hover,
+.coach-dashboard .button-drop:focus-visible {
+    background: #c9444c;
+}
+
+.roster-heading {
+    margin-bottom: 1rem;
+}
+
+.roster-table-wrap {
+    border: 1px solid #e8eff6;
+    border-radius: 14px;
+    overflow-x: auto;
+}
+
+.coach-dashboard .roster-table {
+    width: 100%;
+    min-width: 570px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.coach-dashboard .roster-table th {
+    padding: 0.9rem 1rem;
+    color: #61728a;
+    background: #f2f7fc;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.coach-dashboard .roster-table td {
+    padding: 0.9rem 1rem;
+    color: #55677d;
+    border-bottom: 1px solid #edf2f7;
+    transition: background-color 140ms ease;
+}
+
+.coach-dashboard .roster-table tbody tr:nth-child(even) td {
+    background: #fbfdff;
+}
+
+.coach-dashboard .roster-table tbody tr:hover td {
+    background: #eef8ff;
+}
+
+.coach-dashboard .roster-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.coach-dashboard .roster-table .roster-player-name {
+    color: var(--coach-ink);
+    font-weight: 800;
+}
+
+.roster-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+@media (max-width: 900px) {
+    .coach-dashboard-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .coach-dashboard .coach-header {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 0.85rem 1rem;
+    }
+
+    .coach-dashboard .coach-header nav {
+        width: 100%;
+    }
+
+    .coach-dashboard .coach-header nav a {
+        padding: 0.55rem 0.8rem;
+    }
+
+    .coach-dashboard .coach-content {
+        width: min(100% - 1.25rem, 1180px);
+        margin-top: 1rem;
+    }
+
+    .coach-hero {
+        min-height: 210px;
+        gap: 0.75rem;
+        border-radius: 20px;
+    }
+
+    .coach-hero-mark {
+        width: 82px;
+    }
+}
+
+.transfer-portal {
+    max-width: 760px;
+    margin: 2rem auto;
+    padding: clamp(1.5rem, 5vw, 2.5rem);
+    color: #23384d;
+    background: linear-gradient(135deg, #f1fbff, #f2fff9);
+    border: 1px solid #d5edf0;
+    border-radius: 22px;
+    box-shadow: 0 14px 34px rgba(34, 86, 116, 0.1);
+}
+
+.transfer-portal h2 {
+    margin: 0 0 0.6rem;
+    color: #1d577b;
+}
+
+.transfer-portal > p {
+    color: #62778b;
+    line-height: 1.6;
+}
+
+.transfer-eyebrow {
+    margin: 0 0 0.45rem;
+    color: #128d81;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.transfer-pending {
+    padding: 0.8rem 1rem;
+    background: #e4f8ef;
+    border-radius: 12px;
+}
+
+.transfer-request-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.transfer-request-form label {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #354e64;
+    font-weight: 800;
+}
+
+.transfer-request-form select,
+.transfer-assign-form select {
+    min-width: 0;
+    padding: 0.72rem 0.85rem;
+    color: #263d53;
+    background: #fff;
+    border: 1px solid #d5e1eb;
+    border-radius: 10px;
+}
+
+.transfer-request-form button,
+.transfer-assign-form button {
+    min-height: 43px;
+    color: #fff;
+    background: #168d7d;
+    border-radius: 10px;
+    font-weight: 800;
+    transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.transfer-request-form button:hover,
+.transfer-assign-form button:hover {
+    background: #107463;
+    transform: translateY(-1px);
+}
+
+.transfer-notice {
+    margin: 1rem 0;
+    padding: 0.85rem 1rem;
+    color: #17634e;
+    background: #e4f8ef;
+    border: 1px solid #b8ead1;
+    border-radius: 12px;
+    font-weight: 700;
+}
+
+.transfer-portal-admin {
+    margin: 2rem 0;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    background: #fff;
+    border: 1px solid #e3edf5;
+    border-radius: 18px;
+    box-shadow: 0 10px 28px rgba(37, 54, 74, 0.06);
+}
+
+.transfer-portal-admin > p {
+    color: #687a8e;
+}
+
+.transfer-table-wrap {
+    border: 1px solid #e3edf5;
+    border-radius: 12px;
+}
+
+.transfer-table {
+    min-width: 760px;
+}
+
+.transfer-table th {
+    padding: 0.85rem 1rem;
+    color: #4c6279;
+    background: #eff7fc;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.transfer-table td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #e8eff6;
+}
+
+.transfer-table tbody tr:nth-child(even) {
+    background: #f8fbfe;
+}
+
+.transfer-table tbody tr:hover {
+    background: #eef8ff;
+}
+
+.transfer-assign-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.transfer-assign-form select {
+    flex: 1 1 150px;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 560px) {
+    .transfer-request-form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .transfer-request-form label {
+        grid-column: auto;
+    }
+}
+
+.coach-message-center {
+    margin-bottom: 1.25rem;
+    padding: clamp(1.25rem, 3vw, 1.8rem);
+    background: #fff;
+    border: 1px solid #e6eef6;
+    border-radius: 20px;
+    box-shadow: 0 12px 30px rgba(37, 54, 74, 0.06);
+}
+
+.coach-message-center-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.coach-message-center-heading h2 {
+    margin: 0;
+    color: #25364a;
+    font-family: "Poppins", "Nunito Sans", Arial, sans-serif;
+    font-size: 1.25rem;
+}
+
+.coach-message-center-heading > p {
+    margin: 0;
+    color: #74839a;
+}
+
+.coach-message-links {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.coach-message-link {
+    display: flex;
+    min-width: 0;
+    min-height: 112px;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    color: #25364a;
+    background: #f7fbff;
+    border: 1px solid #e5eef7;
+    border-radius: 15px;
+    text-decoration: none;
+    transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.coach-message-link:hover,
+.coach-message-link:focus-visible {
+    background: #fff;
+    border-color: #b7daf5;
+    box-shadow: 0 9px 20px rgba(37, 102, 158, 0.12);
+    transform: translateY(-2px);
+}
+
+.coach-message-icon {
+    display: grid;
+    width: 43px;
+    height: 43px;
+    flex: 0 0 auto;
+    color: #1769bf;
+    background: #e5f2ff;
+    border-radius: 13px;
+    font-size: 0.56rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    place-items: center;
+}
+
+.player-message-icon {
+    color: #11815f;
+    background: #e3f7ef;
+}
+
+.board-message-icon {
+    color: #8653b4;
+    background: #f1eafd;
+}
+
+.hos-message-icon {
+    color: #b65b32;
+    background: #fff0e8;
+}
+
+.coach-message-copy {
+    display: grid;
+    min-width: 0;
+    gap: 0.25rem;
+}
+
+.coach-message-copy strong {
+    font-size: 0.88rem;
+    line-height: 1.35;
+}
+
+.coach-message-copy small {
+    color: #74839a;
+    font-size: 0.76rem;
+    line-height: 1.35;
+}
+
+.coach-message-arrow {
+    margin-left: auto;
+    color: #7d91a8;
+    font-size: 1.15rem;
+}
+
+@media (max-width: 1000px) {
+    .coach-message-links {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .coach-message-center-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .coach-message-links {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
