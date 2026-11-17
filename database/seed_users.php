@@ -1,69 +1,12 @@
 <?php
 declare(strict_types=1);
 
-$isCli = PHP_SAPI === 'cli';
-
-if (!$isCli) {
-    $remoteAddress = $_SERVER['REMOTE_ADDR'] ?? '';
-    if (!in_array($remoteAddress, ['127.0.0.1', '::1'], true)) {
-        http_response_code(403);
-        exit('This seeder is available only from localhost.');
-    }
-
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        session_start();
-    }
-
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
-        if (empty($_SESSION['seed_users_csrf'])) {
-            $_SESSION['seed_users_csrf'] = bin2hex(random_bytes(32));
-        }
-
-        header('Content-Type: text/html; charset=utf-8');
-        header('Cache-Control: no-store');
-        $action = htmlspecialchars($_SERVER['SCRIPT_NAME'] ?? '', ENT_QUOTES, 'UTF-8');
-        $csrfToken = htmlspecialchars($_SESSION['seed_users_csrf'], ENT_QUOTES, 'UTF-8');
-        ?>
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>Confirm user seeding</title>
-        </head>
-        <body>
-            <h1>Confirm user seeding</h1>
-            <p>This will permanently delete all existing users, then create the three test accounts.</p>
-            <form method="post" action="<?= $action ?>">
-                <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
-                <label for="confirmation">Type TRUNCATE USERS to continue:</label>
-                <input id="confirmation" name="confirmation" required>
-                <button type="submit">Delete users and seed test accounts</button>
-            </form>
-        </body>
-        </html>
-        <?php
-        exit;
-    }
-
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-        header('Allow: GET, POST');
-        http_response_code(405);
-        exit('Method not allowed.');
-    }
-
-    $submittedToken = $_POST['csrf_token'] ?? '';
-    $confirmation = $_POST['confirmation'] ?? '';
-    $expectedToken = $_SESSION['seed_users_csrf'] ?? '';
-
-    if (!is_string($submittedToken) || !is_string($expectedToken)
-        || $expectedToken === '' || !hash_equals($expectedToken, $submittedToken)
-        || $confirmation !== 'TRUNCATE USERS') {
-        http_response_code(400);
-        exit('Confirmation failed. Reload the page and try again.');
-    }
-
-    unset($_SESSION['seed_users_csrf']);
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('This destructive development seeder is available only from the command line.');
+}
+if (($argv[1] ?? '') !== '--reset-test-users') {
+    exit("This clears all user accounts. Re-run with --reset-test-users only on a development database.\n");
 }
 
 require_once __DIR__ . '/../config/db.php';

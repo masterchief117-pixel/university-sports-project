@@ -94,4 +94,22 @@ if (!$droppedPlayer || $droppedPlayer['sport_id'] !== null || $playerCount !== 1
     exit(1);
 }
 
+$photographerPassword = 'temporary-password-456';
+create_photographer_account(
+    $pdo,
+    'Test Photographer',
+    'photographer@example.invalid',
+    $photographerPassword
+);
+$photographerQuery = $pdo->prepare('SELECT * FROM users WHERE email = :email');
+$photographerQuery->execute(['email' => 'photographer@example.invalid']);
+$photographer = $photographerQuery->fetch();
+if (!$photographer
+    || $photographer['role'] !== 'photographer'
+    || $photographer['sport_id'] !== null
+    || !password_verify($photographerPassword, $photographer['password_hash'])) {
+    fwrite(STDERR, 'Photographer account creation did not preserve role or password hashing.' . PHP_EOL);
+    exit(1);
+}
+
 echo 'Player creation, transfer assignment, and soft-drop data flow passed.' . PHP_EOL;

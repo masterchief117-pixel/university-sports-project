@@ -2,7 +2,6 @@
 declare(strict_types=1);
 
 error_reporting(E_ALL);
-ini_set('display_errors', '1');
 
 require_once __DIR__ . '/../includes/auth_check.php';
 require_role('hos');
@@ -26,6 +25,10 @@ $coachesQuery = $pdo->query(
      ORDER BY s.name, u.name, u.id"
 );
 $coaches = $coachesQuery->fetchAll();
+$photographersQuery = $pdo->query(
+    "SELECT id, name, email FROM users WHERE role = 'photographer' ORDER BY name, id"
+);
+$photographers = $photographersQuery->fetchAll();
 $transferQuery = $pdo->query(
     "SELECT u.id, u.name, u.email, u.requested_sport_id,
             s.name AS requested_sport_name
@@ -37,8 +40,12 @@ $transferQuery = $pdo->query(
 $transferPlayers = $transferQuery->fetchAll();
 $availableSportsQuery = $pdo->query('SELECT id, name FROM sports ORDER BY name');
 $availableSports = $availableSportsQuery->fetchAll();
-$hosDashboardFlash = $_SESSION['hos_dashboard_flash'] ?? '';
-$hosDashboardFlashType = $_SESSION['hos_dashboard_flash_type'] ?? 'success';
+$hosDashboardFlash = $_SESSION['hos_dashboard_flash'] ?? $_SESSION['flash'] ?? '';
+$hosDashboardFlashType = $_SESSION['hos_dashboard_flash_type'] ?? $_SESSION['flash_type'] ?? 'success';
+if ($hosDashboardFlash !== '') {
+    $_SESSION['flash'] = $hosDashboardFlash;
+    $_SESSION['flash_type'] = $hosDashboardFlashType;
+}
 unset($_SESSION['hos_dashboard_flash']);
 unset($_SESSION['hos_dashboard_flash_type']);
 $hosName = $_SESSION['name'] ?? 'Head of Sports';
@@ -54,13 +61,6 @@ $pageTitle = 'Head of Sports dashboard';
 require __DIR__ . '/../includes/header.php';
 ?>
 <h1>Welcome, <?= htmlspecialchars($hosName, ENT_QUOTES, 'UTF-8') ?></h1>
-<?php if ($hosDashboardFlash !== ''): ?>
-    <p class="transfer-notice<?= $hosDashboardFlashType === 'error' ? ' transfer-notice-error' : '' ?>"
-       role="<?= $hosDashboardFlashType === 'error' ? 'alert' : 'status' ?>">
-        <?= htmlspecialchars($hosDashboardFlash, ENT_QUOTES, 'UTF-8') ?>
-    </p>
-<?php endif; ?>
-
 <section class="coach-overview" aria-label="Portal overview">
     <article class="coach-overview-card">
         <span class="coach-overview-label">Sports</span>
@@ -304,6 +304,40 @@ require __DIR__ . '/../includes/header.php';
         </div>
     <?php endif; ?>
 </section>
+<section class="dashboard-table-section" id="photographers"
+         aria-labelledby="hos-photographers-heading">
+    <h2 id="hos-photographers-heading">Photographer accounts</h2>
+    <p>Create a secure account for someone managing the public photo galleries.</p>
+    <form class="hos-photographer-form" method="post"
+          action="<?= htmlspecialchars(app_url('/hos/create_photographer.php'), ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="csrf_token"
+               value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
+        <label for="photographer-name">Full name</label>
+        <input id="photographer-name" name="name" type="text" maxlength="120"
+               autocomplete="name" required>
+        <label for="photographer-email">Email</label>
+        <input id="photographer-email" name="email" type="email" maxlength="254"
+               autocomplete="email" required>
+        <label for="photographer-password">Temporary password</label>
+        <input id="photographer-password" name="password" type="password" minlength="12"
+               autocomplete="new-password" required>
+        <button type="submit">Create account</button>
+    </form>
+
+    <?php if ($photographers === []): ?>
+        <p>No photographer accounts yet. Create one when you're ready to share gallery access.</p>
+    <?php else: ?>
+        <ul class="hos-photographer-list">
+            <?php foreach ($photographers as $photographer): ?>
+                <li>
+                    <strong><?= htmlspecialchars($photographer['name'], ENT_QUOTES, 'UTF-8') ?></strong>
+                    <span><?= htmlspecialchars($photographer['email'], ENT_QUOTES, 'UTF-8') ?></span>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+</section>
+
 <script src="<?= htmlspecialchars(
     app_url('/assets/js/dashboard-tables.js'),
     ENT_QUOTES,

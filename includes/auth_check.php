@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 error_reporting(E_ALL);
 
+error_reporting(E_ALL);
+$debugMode = getenv('UNIVERSITY_SPORTS_DEBUG') === '1';
+ini_set('display_errors', $debugMode ? '1' : '0');
+ini_set('display_startup_errors', $debugMode ? '1' : '0');
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
@@ -34,7 +39,7 @@ function app_url(string $path): string
     $scriptPath = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/');
     $basePath = rtrim(str_replace('\\', '/', dirname($scriptPath)), '/');
 
-    foreach (['/auth', '/api', '/player', '/coach', '/hos'] as $directory) {
+    foreach (['/auth', '/api', '/player', '/coach', '/hos', '/photographer'] as $directory) {
         if ($basePath === $directory) {
             $basePath = '';
             break;
@@ -124,7 +129,10 @@ function issue_remembered_login(PDO $pdo, int $userId): void
 function get_database_connection(): PDO
 {
     if (!isset($GLOBALS['pdo']) || !($GLOBALS['pdo'] instanceof PDO)) {
-        require_once __DIR__ . '/../config/db.php';
+        require __DIR__ . '/../config/db.php';
+        if (!isset($pdo) || !($pdo instanceof PDO)) {
+            throw new RuntimeException('Database configuration did not provide a PDO connection.');
+        }
         $GLOBALS['pdo'] = $pdo;
     }
 
@@ -155,7 +163,7 @@ function restore_remembered_login(PDO $pdo): bool
     $user = $lookup->fetch(PDO::FETCH_ASSOC);
 
     if (!$user || !hash_equals((string) $user['token_hash'], hash('sha256', $validator))
-        || !in_array($user['role'], ['player', 'coach', 'hos'], true)) {
+        || !in_array($user['role'], ['player', 'coach', 'hos', 'photographer'], true)) {
         $delete = $pdo->prepare('DELETE FROM remember_tokens WHERE selector = :selector');
         $delete->execute(['selector' => $selector]);
         clear_remember_cookie();
@@ -240,6 +248,7 @@ function require_role(string $role): void
             'player' => '/player/dashboard.php',
             'coach' => '/coach/dashboard.php',
             'hos' => '/hos/dashboard.php',
+            'photographer' => '/photographer/dashboard.php',
         ];
         if (isset($destinations[$account['role']])) {
             header('Location: ' . app_url($destinations[$account['role']]));
@@ -277,6 +286,34 @@ function require_valid_csrf_token(): void
     if (!is_string($providedToken) || !csrf_token_is_valid($providedToken)) {
         json_error('Invalid request token.', 403);
     }
+}
+
+function set_flash(string $message, string $type = 'success'): void
+{
+    $allowedTypes = ['success', 'error', 'warning', 'info'];
+    $_SESSION['flash_message'] = $message;
+    $_SESSION['flash_type'] = in_array($type, $allowedTypes, true) ? $type : 'success';
+}
+
+function clear_flash(): void
+{
+    unset($_SESSION['flash_message'], $_SESSION['flash_type']);
+    foreach (['flash', 'flash_type', 'auth_flash', 'auth_flash_type', 'player_dashboard_flash', 'player_dashboard_flash_type', 'coach_dashboard_flash', 'coach_dashboard_flash_type'] as $key) {
+        unset($_SESSION[$key]);
+    }
+}
+
+function get_flash(): array
+{
+    $message = $_SESSION['flash_message'] ?? $_SESSION['flash'] ?? '';
+    $type = $_SESSION['flash_type'] ?? $_SESSION['flash_type'] ?? 'success';
+
+    if ($message !== '') {
+        clear_flash();
+        return ['message' => (string) $message, 'type' => is_string($type) ? $type : 'success'];
+    }
+
+    return ['message' => '', 'type' => 'success'];
 }
 
 function require_conversation_access(PDO $pdo, int $conversationId): void

@@ -19,9 +19,15 @@ require_once __DIR__ . '/../config/db.php';
 revoke_remembered_login($pdo);
 
 $_SESSION = [];
-session_regenerate_id(true);
-setcookie(session_name(), '', [
-    'expires' => time() - 3600,
+if (session_status() === PHP_SESSION_ACTIVE) {
+    session_destroy();
+}
+session_id(bin2hex(random_bytes(16)));
+session_start();
+$_SESSION['flash_message'] = 'You have been logged out successfully.';
+$_SESSION['flash_type'] = 'success';
+setcookie(session_name(), session_id(), [
+    'expires' => 0,
     'path' => '/',
     'secure' => isset($_SERVER['HTTPS'])
         && $_SERVER['HTTPS'] !== ''
@@ -29,6 +35,5 @@ setcookie(session_name(), '', [
     'httponly' => true,
     'samesite' => 'Lax',
 ]);
-session_destroy();
 header('Location: ' . app_url('/auth/login.php'));
 exit;

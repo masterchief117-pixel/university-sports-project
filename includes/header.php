@@ -23,6 +23,10 @@ $navigation = [
         'Dashboard' => app_url('/hos/dashboard.php'),
         'Coach chat' => app_url('/hos/coach_chat.php'),
     ],
+    'photographer' => [
+        'Dashboard' => app_url('/photographer/dashboard.php'),
+        'Public galleries' => app_url('/'),
+    ],
 ];
 ?>
 <!DOCTYPE html>
@@ -33,7 +37,7 @@ $navigation = [
     <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= htmlspecialchars(
         app_url('/assets/css/style.css') . '?v=' . filemtime($stylePath),
         ENT_QUOTES,
@@ -65,4 +69,5 @@ $navigation = [
         </nav>
     <?php endif; ?>
 </header>
+<?php require_once __DIR__ . '/toast_notification.php'; ?>
 <main class="page-content">

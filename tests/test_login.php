@@ -43,6 +43,14 @@ if (!function_exists('curl_init')) {
 }
 
 $loginUrl = 'http://localhost/university_sports/auth/login.php';
+$hosTestPassword = getenv('UNIVERSITY_SPORTS_TEST_HOS_PASSWORD');
+if (!is_string($hosTestPassword) || $hosTestPassword === '') {
+    $hosTestPassword = 'password123';
+}
+$hosTestEmail = getenv('UNIVERSITY_SPORTS_TEST_HOS_EMAIL');
+if (!is_string($hosTestEmail) || $hosTestEmail === '') {
+    $hosTestEmail = 'hos@uni.edu';
+}
 $curl = curl_init($loginUrl);
 curl_setopt_array($curl, [
     CURLOPT_HEADER => true,
@@ -74,8 +82,8 @@ if ($initialResponse !== '' && $csrfToken !== '') {
     curl_setopt_array($curl, [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query([
-            'email' => 'hos@uni.edu',
-            'password' => 'password123',
+            'email' => $hosTestEmail,
+            'password' => $hosTestPassword,
             'csrf_token' => 'invalid',
         ]),
         CURLOPT_HTTPHEADER => [
@@ -92,8 +100,8 @@ if ($initialResponse !== '' && $csrfToken !== '') {
         && preg_match('/^Location:/im', $invalidHeaders) !== 1;
 
     curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query([
-        'email' => 'hos@uni.edu',
-        'password' => 'password123',
+        'email' => $hosTestEmail,
+        'password' => $hosTestPassword,
         'csrf_token' => $csrfToken,
     ]));
 }

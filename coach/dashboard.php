@@ -33,8 +33,12 @@ $rosterStatus = $sport_id === null
     : ($rosterCount === 0 ? 'Building' : 'Active');
 
 // Handle flash messages for success/error alerts
-$coach_dashboard_flash = $_SESSION['coach_dashboard_flash'] ?? '';
-$coach_dashboard_flash_type = $_SESSION['coach_dashboard_flash_type'] ?? 'success';
+$coach_dashboard_flash = $_SESSION['coach_dashboard_flash'] ?? $_SESSION['flash'] ?? '';
+$coach_dashboard_flash_type = $_SESSION['coach_dashboard_flash_type'] ?? $_SESSION['flash_type'] ?? 'success';
+if ($coach_dashboard_flash !== '') {
+    $_SESSION['flash'] = $coach_dashboard_flash;
+    $_SESSION['flash_type'] = $coach_dashboard_flash_type;
+}
 unset($_SESSION['coach_dashboard_flash']);
 unset($_SESSION['coach_dashboard_flash_type']);
 ?>
@@ -45,8 +49,12 @@ unset($_SESSION['coach_dashboard_flash_type']);
     <title>Coach Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= htmlspecialchars(app_url('/assets/css/style.css'), ENT_QUOTES, 'UTF-8') ?>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?= htmlspecialchars(
+        app_url('/assets/css/style.css') . '?v=' . filemtime(__DIR__ . '/../assets/css/style.css'),
+        ENT_QUOTES,
+        'UTF-8'
+    ) ?>">
 </head>
 <body class="coach-dashboard" data-base-path="<?= htmlspecialchars(rtrim(app_url('/'), '/'), ENT_QUOTES, 'UTF-8') ?>">
     <header class="site-header coach-header">
@@ -63,7 +71,7 @@ unset($_SESSION['coach_dashboard_flash_type']);
         </nav>
     </header>
     <main class="page-content coach-content">
-        <section class="coach-hero" aria-labelledby="coach-welcome">
+        <div class="card coach-hero" aria-labelledby="coach-welcome">
             <div class="coach-hero-copy">
                 <p class="coach-eyebrow">Coach workspace</p>
                 <h1 id="coach-welcome">Welcome, <?= htmlspecialchars($_SESSION['name'], ENT_QUOTES, 'UTF-8') ?></h1>
@@ -73,7 +81,7 @@ unset($_SESSION['coach_dashboard_flash_type']);
                 </p>
             </div>
             <div class="coach-hero-mark" aria-hidden="true">TEAM</div>
-        </section>
+        </div>
 
         <section class="coach-overview" aria-label="Team overview">
             <article class="coach-overview-card">
@@ -101,7 +109,7 @@ unset($_SESSION['coach_dashboard_flash_type']);
             </article>
         </section>
 
-        <section class="coach-message-center" aria-labelledby="message-center-heading">
+        <div class="card coach-message-center" aria-labelledby="message-center-heading">
             <div class="coach-message-center-heading">
                 <div>
                     <p class="coach-eyebrow">Stay connected</p>
@@ -143,18 +151,11 @@ unset($_SESSION['coach_dashboard_flash_type']);
                     <span class="coach-message-arrow" aria-hidden="true">&rarr;</span>
                 </a>
             </nav>
-        </section>
-
-        <?php if ($coach_dashboard_flash !== ''): ?>
-            <p class="coach-notice<?= $coach_dashboard_flash_type === 'error' ? ' coach-notice-error' : '' ?>"
-               role="<?= $coach_dashboard_flash_type === 'error' ? 'alert' : 'status' ?>">
-                <?= htmlspecialchars($coach_dashboard_flash, ENT_QUOTES, 'UTF-8') ?>
-            </p>
-        <?php endif; ?>
+        </div>
 
         <div class="coach-dashboard-grid">
             <?php if ($sport_id !== null): ?>
-                <section class="coach-card add-player-card" aria-labelledby="add-player-heading">
+                <div class="card coach-card add-player-card" aria-labelledby="add-player-heading">
                     <div class="coach-section-heading">
                         <span class="coach-section-icon" aria-hidden="true">+</span>
                         <div>
@@ -181,19 +182,19 @@ unset($_SESSION['coach_dashboard_flash_type']);
                             <input id="new-player-password" name="password" type="password" minlength="10" autocomplete="new-password" placeholder="Create a secure password" required>
                         </div>
 
-                        <button class="button button-add-player" type="submit">
+                        <button class="btn btn-primary" type="submit">
                             <span aria-hidden="true">+</span> Add Player
                         </button>
                     </form>
-                </section>
+                </div>
             <?php else: ?>
-                <section class="coach-card add-player-card">
+                <div class="card coach-card add-player-card">
                     <h2>Add New Player</h2>
                     <p>A sport must be assigned to your coach account before you can add players.</p>
-                </section>
+                </div>
             <?php endif; ?>
 
-            <section class="coach-card roster-card dashboard-table-container" data-table-container
+            <div class="card coach-card roster-card dashboard-table-container" data-table-container
                      aria-labelledby="roster-heading">
                 <div class="coach-section-heading roster-heading">
                     <span class="coach-section-icon roster-icon" aria-hidden="true">★</span>
@@ -215,78 +216,77 @@ unset($_SESSION['coach_dashboard_flash_type']);
                                 : 'Your roster is empty. Add your first player to get the team started.' ?>
                         </p>
                         <?php if ($sport_id !== null): ?>
-                            <a class="button button-message" href="#new-player-name">Add your first player</a>
+                            <a class="btn btn-primary" href="#new-player-name">Add your first player</a>
                         <?php endif; ?>
                     </div>
                 <?php else: ?>
-                    <div class="roster-search">
-                        <label for="roster-search-input">Search players</label>
-                        <input id="roster-search-input" type="search" autocomplete="off"
-                               placeholder="Search by name or email" data-table-search>
-                        <p class="roster-search-status" data-table-results aria-live="polite">
-                            Showing all <?= count($players) ?> <?= count($players) === 1 ? 'player' : 'players' ?>.
-                        </p>
-                        <div class="roster-sort-control">
-                            <label for="roster-sort-select">Sort roster</label>
-                            <select id="roster-sort-select" data-table-sort-select>
-                                <option value="0-asc">Player name (A–Z)</option>
-                                <option value="0-desc">Player name (Z–A)</option>
-                                <option value="1-asc">Email (A–Z)</option>
-                                <option value="1-desc">Email (Z–A)</option>
-                            </select>
+                    <div class="dashboard-table-container" data-table-container>
+                        <div class="dashboard-table-tools">
+                            <div>
+                                <label for="roster-search">Search players</label>
+                                <input id="roster-search" type="search" data-table-search
+                                       placeholder="Search player name or email" autocomplete="off">
+                            </div>
+                            <p data-table-results aria-live="polite">
+                                Showing all <?= count($players) ?> <?= count($players) === 1 ? 'player' : 'players' ?>.
+                            </p>
+                            <div class="dashboard-mobile-sort">
+                                <label for="roster-sort">Sort players</label>
+                                <select id="roster-sort" data-table-sort-select>
+                                    <option value="0-asc">Name (A–Z)</option>
+                                    <option value="0-desc">Name (Z–A)</option>
+                                    <option value="1-asc">Email (A–Z)</option>
+                                    <option value="1-desc">Email (Z–A)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="roster-table-wrap">
+                            <table class="roster-table dashboard-data-table" data-dashboard-table
+                                   data-item-label="player" data-item-label-plural="players">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" aria-sort="ascending">
+                                            <button class="dashboard-sort-button" type="button" data-table-sort="0">
+                                                Player <span aria-hidden="true" data-sort-indicator>↑</span>
+                                            </button>
+                                        </th>
+                                        <th scope="col" aria-sort="none">
+                                            <button class="dashboard-sort-button" type="button" data-table-sort="1">
+                                                Email <span aria-hidden="true" data-sort-indicator>↕</span>
+                                            </button>
+                                        </th>
+                                        <th scope="col">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($players as $player): ?>
+                                        <tr data-table-row>
+                                            <td data-label="Player" data-search-cell>
+                                                <span class="roster-player-name"><?= htmlspecialchars($player['name'], ENT_QUOTES, 'UTF-8') ?></span>
+                                            </td>
+                                            <td data-label="Email" data-search-cell><?= htmlspecialchars($player['email'], ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td data-label="Actions">
+                                                <div class="roster-actions">
+                                                    <a class="btn btn-primary" href="player_chat.php?target_user_id=<?= (int) $player['id'] ?>">Message</a>
+                                                    <form class="inline-form" method="post" action="drop_player.php">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                                        <input type="hidden" name="player_id" value="<?= (int) $player['id'] ?>">
+                                                        <button class="btn btn-danger" type="submit">Drop</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    <tr data-table-no-results hidden>
+                                        <td colspan="3">No players match your search.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    <div class="roster-table-wrap">
-                        <table class="roster-table" data-dashboard-table
-                               data-item-label="player" data-item-label-plural="players">
-                            <thead>
-                                <tr>
-                                    <th scope="col" aria-sort="ascending">
-                                        <button class="roster-sort-button" type="button" data-table-sort="0">
-                                            Player <span aria-hidden="true" data-sort-indicator>↑</span>
-                                        </button>
-                                    </th>
-                                    <th scope="col" aria-sort="none">
-                                        <button class="roster-sort-button" type="button" data-table-sort="1">
-                                            Email <span aria-hidden="true" data-sort-indicator>↕</span>
-                                        </button>
-                                    </th>
-                                    <th scope="col">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($players as $player): ?>
-                                    <tr data-table-row>
-                                        <td class="roster-player-name" data-label="Player" data-search-cell><?= htmlspecialchars($player['name'], ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td data-label="Email" data-search-cell><?= htmlspecialchars($player['email'], ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td data-label="Actions">
-                                            <div class="roster-actions">
-                                                <a class="button button-message" href="player_chat.php?player_id=<?= (int) $player['id'] ?>">
-                                                    Message
-                                                </a>
-                                                <form class="inline-form" method="post" action="drop_player.php" onsubmit="return confirm('Remove this player from your sport roster?');">
-                                                    <input type="hidden" name="player_id" value="<?= (int) $player['id'] ?>">
-                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                                                    <button class="button button-drop" type="submit">Drop</button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                                <tr data-table-no-results hidden>
-                                    <td colspan="3">No players match your search.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
                 <?php endif; ?>
-            </section>
+            </div>
         </div>
     </main>
-    <script src="<?= htmlspecialchars(
-        app_url('/assets/js/dashboard-tables.js'),
-        ENT_QUOTES,
-        'UTF-8'
-    ) ?>" defer></script>
 </body>
 </html>

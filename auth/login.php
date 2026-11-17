@@ -8,11 +8,16 @@ $destinations = [
     'player' => '../player/dashboard.php',
     'coach' => '../coach/dashboard.php',
     'hos' => '../hos/dashboard.php',
+    'photographer' => '../photographer/dashboard.php',
 ];
 $error = '';
 $email = '';
-$authFlash = $_SESSION['auth_flash'] ?? '';
-unset($_SESSION['auth_flash']);
+$authFlash = $_SESSION['auth_flash'] ?? $_SESSION['flash'] ?? '';
+$authFlashType = $_SESSION['auth_flash_type'] ?? $_SESSION['flash_type'] ?? 'success';
+if ($authFlash !== '') {
+    $_SESSION['flash'] = $authFlash;
+    $_SESSION['flash_type'] = $authFlashType;
+}
 
 if (!empty($_SESSION['user_id']) && isset($destinations[$_SESSION['role'] ?? ''])) {
     header('Location: ' . $destinations[$_SESSION['role']]);
@@ -87,31 +92,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $pageTitle = 'Log in';
 require __DIR__ . '/../includes/header.php';
 ?>
-<h1>Log in</h1>
-<?php if ($authFlash !== ''): ?>
-    <p class="transfer-notice" role="status"><?= htmlspecialchars($authFlash, ENT_QUOTES, 'UTF-8') ?></p>
-<?php endif; ?>
-<?php if ($error !== ''): ?>
-    <p class="error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
-<?php endif; ?>
-<form method="post" action="">
-    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
+<div class="auth-page">
+    <div class="auth-card auth-card-login">
+        <div class="auth-copy">
+            <p class="auth-kicker">Welcome back</p>
+            <h1>Log in</h1>
+            <p>Access your team dashboard, message center, and sport updates from one secure place.</p>
+        </div>
 
-    <label for="email">Email</label>
-    <input id="email" name="email" type="email" autocomplete="username"
-           value="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>" required>
+        <div class="auth-form-wrap">
+            <?php if ($error !== ''): ?>
+                <p class="error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
+            <?php endif; ?>
 
-    <label for="password">Password</label>
-    <input id="password" name="password" type="password" autocomplete="current-password" required>
-    <button class="password-toggle" type="button" data-password-toggle="password"
-            aria-controls="password" aria-pressed="false">Show password</button>
+            <form class="auth-form" method="post" action="">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
 
-    <label class="remember-me">
-        <input name="remember_me" type="checkbox" value="1">
-        Remember me for 30 days
-    </label>
+                <div class="form-row">
+                    <label for="email">Email</label>
+                    <input id="email" name="email" type="email" autocomplete="username"
+                           value="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>" required>
+                </div>
 
-    <button type="submit">Log in</button>
-</form>
+                <div class="form-row">
+                    <label for="password">Password</label>
+                    <div class="password-field">
+                        <input id="password" name="password" type="password" autocomplete="current-password" required>
+                        <button class="password-toggle" type="button" data-password-toggle="password"
+                                aria-controls="password" aria-pressed="false">Show</button>
+                    </div>
+                </div>
+
+                <label class="remember-me">
+                    <input name="remember_me" type="checkbox" value="1">
+                    Remember me for 30 days
+                </label>
+
+                <button class="btn auth-submit" type="submit">Log in</button>
+                <p class="auth-meta">Need an account? <a href="<?= htmlspecialchars(app_url('/auth/register.php'), ENT_QUOTES, 'UTF-8') ?>">Create one</a></p>
+            </form>
+        </div>
+    </div>
+</div>
 <script src="<?= htmlspecialchars(app_url('/assets/js/password-toggle.js'), ENT_QUOTES, 'UTF-8') ?>" defer></script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

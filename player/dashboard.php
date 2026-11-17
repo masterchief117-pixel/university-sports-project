@@ -2,7 +2,6 @@
 declare(strict_types=1);
 
 error_reporting(E_ALL);
-ini_set('display_errors', '1');
 
 require_once __DIR__ . '/../includes/auth_check.php';
 require_role('player');
@@ -71,8 +70,12 @@ if ($sport_id !== null) {
     }
 }
 
-$player_dashboard_flash = $_SESSION['player_dashboard_flash'] ?? '';
-$player_dashboard_flash_type = $_SESSION['player_dashboard_flash_type'] ?? 'success';
+$player_dashboard_flash = $_SESSION['player_dashboard_flash'] ?? $_SESSION['flash'] ?? '';
+$player_dashboard_flash_type = $_SESSION['player_dashboard_flash_type'] ?? $_SESSION['flash_type'] ?? 'success';
+if ($player_dashboard_flash !== '') {
+    $_SESSION['flash'] = $player_dashboard_flash;
+    $_SESSION['flash_type'] = $player_dashboard_flash_type;
+}
 unset($_SESSION['player_dashboard_flash']);
 unset($_SESSION['player_dashboard_flash_type']);
 $playerName = $_SESSION['name'] ?? 'Player';
@@ -81,13 +84,6 @@ $pageTitle = 'Player dashboard';
 require __DIR__ . '/../includes/header.php';
 ?>
 <h1>Welcome, <?= htmlspecialchars($playerName, ENT_QUOTES, 'UTF-8') ?></h1>
-<?php if ($player_dashboard_flash !== ''): ?>
-    <p class="transfer-notice<?= $player_dashboard_flash_type === 'error' ? ' transfer-notice-error' : '' ?>"
-       role="<?= $player_dashboard_flash_type === 'error' ? 'alert' : 'status' ?>">
-        <?= htmlspecialchars($player_dashboard_flash, ENT_QUOTES, 'UTF-8') ?>
-    </p>
-<?php endif; ?>
-
 <section class="coach-overview" aria-label="Player overview">
     <article class="coach-overview-card">
         <span class="coach-overview-label">Sport</span>

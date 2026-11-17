@@ -26,12 +26,20 @@ $cases = [
         '/university_sports/assets/css/style.css',
         '/university_sports/auth/login.php',
     ],
+    [
+        '\\university_sports\\photographer\\dashboard.php',
+        '/university_sports/assets/css/style.css',
+        '/university_sports/auth/login.php',
+    ],
 ];
 
 foreach ($cases as [$scriptName, $stylesheetPath, $loginPath]) {
     $html = renderLandingPage($scriptName);
 
-    if (strpos($html, 'href="' . $stylesheetPath . '"') === false
+    if (preg_match(
+        '~href="' . preg_quote($stylesheetPath, '~') . '(?:\?[^"]*)?"~',
+        $html
+    ) !== 1
         || strpos($html, 'href="' . $loginPath . '"') === false) {
         fwrite(STDERR, 'Landing page URL generation failed for ' . $scriptName . PHP_EOL);
         exit(1);

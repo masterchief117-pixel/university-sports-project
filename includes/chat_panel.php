@@ -48,6 +48,10 @@ if ($selectedContact === null) {
         <?php endif; ?>
 
         <div class="chat-main">
+            <button type="button" class="chat-load-older" data-chat-load-older
+                    aria-controls="chat-box" hidden>
+                Load earlier messages
+            </button>
             <div id="chat-box" class="message-list" aria-live="polite" aria-label="Messages"></div>
             <p data-chat-status role="status" aria-live="polite"></p>
             <form id="chat-form"
@@ -64,10 +68,12 @@ if ($selectedContact === null) {
                 <input type="hidden" name="conversation_type"
                        value="<?= htmlspecialchars($chatType, ENT_QUOTES, 'UTF-8') ?>">
                 <label for="chat-input">Message</label>
-                <input id="chat-input" name="body" type="text" maxlength="4000" autocomplete="off" required>
-                <button type="submit" <?= is_array($chatContacts ?? null) && $chatContacts === [] ? 'disabled' : '' ?>>
-                    Send
-                </button>
+                <div class="chat-composer">
+                    <input id="chat-input" name="body" type="text" maxlength="4000" autocomplete="off" required>
+                    <button type="submit" <?= is_array($chatContacts ?? null) && $chatContacts === [] ? 'disabled' : '' ?>>
+                        Send
+                    </button>
+                </div>
             </form>
         </div>
     </div>

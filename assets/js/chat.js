@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const input = document.getElementById("chat-input");
     const status = document.querySelector("[data-chat-status]");
+    const loadOlderButton = document.querySelector("[data-chat-load-older]");
     const contactButtons = Array.from(document.querySelectorAll("[data-chat-contact]"));
     const sendButton = form.querySelector('button[type="submit"]');
     const basePath = document.body.dataset.basePath || "";
@@ -21,6 +22,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let activeLoadController = null;
     let activeLoadTarget = null;
     let sendingMessage = false;
+    let lastMessageId = 0;
+    let firstMessageId = 0;
+    let hasOlderMessages = false;
+    let loadingOlderMessages = false;
     const noAvailableContacts = requiresContact && contactButtons.length === 0;
 
     function showStatus(message) {
@@ -41,7 +46,30 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    async function loadMessages() {
+    function updateLoadOlderButton() {
+        if (loadOlderButton) {
+            loadOlderButton.hidden = !hasOlderMessages;
+            loadOlderButton.disabled = loadingOlderMessages;
+        }
+    }
+
+    function createMessageBubble(message) {
+        const bubble = document.createElement("article");
+        bubble.className = Number(message.sender_id) === currentUserId
+            ? "message-bubble message-own"
+            : "message-bubble";
+
+        const sender = document.createElement("strong");
+        sender.textContent = message.sender_name;
+        const body = document.createElement("p");
+        body.textContent = message.body;
+
+        bubble.dataset.messageId = String(message.id);
+        bubble.append(sender, body);
+        return bubble;
+    }
+
+    async function loadMessages(mode = "poll") {
         const targetUserId = getTargetUserId();
         if (requiresContact && !targetUserId) {
             if (activeLoadController) {
@@ -50,6 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 activeLoadTarget = null;
             }
             chatBox.replaceChildren();
+            firstMessageId = 0;
+            lastMessageId = 0;
+            hasOlderMessages = false;
+            updateLoadOlderButton();
             showStatus("Select a conversation partner to view messages.");
             return;
         }
@@ -65,11 +97,21 @@ document.addEventListener("DOMContentLoaded", () => {
         const controller = new AbortController();
         activeLoadController = controller;
         activeLoadTarget = requestTarget;
+        const previousScrollHeight = chatBox.scrollHeight;
+        const previousScrollTop = chatBox.scrollTop;
+        const followLatest = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 80;
+        loadingOlderMessages = mode === "older";
+        updateLoadOlderButton();
 
         try {
             const params = new URLSearchParams({ conversation_type: conversationType });
             if (targetUserId) {
                 params.set("target_user_id", String(targetUserId));
+            }
+            if (mode === "older" && firstMessageId > 0) {
+                params.set("before_id", String(firstMessageId));
+            } else if (mode !== "initial" && lastMessageId > 0) {
+                params.set("after_id", String(lastMessageId));
             }
 
             const response = await fetch(
@@ -89,23 +131,38 @@ document.addEventListener("DOMContentLoaded", () => {
                 throw new Error(result.error || "Unable to load messages.");
             }
 
-            chatBox.replaceChildren();
-            result.messages.forEach((message) => {
-                const bubble = document.createElement("article");
-                bubble.className = Number(message.sender_id) === currentUserId
-                    ? "message-bubble message-own"
-                    : "message-bubble";
-
-                const sender = document.createElement("strong");
-                sender.textContent = message.sender_name;
-                const body = document.createElement("p");
-                body.textContent = message.body;
-
-                bubble.append(sender, body);
-                chatBox.appendChild(bubble);
-            });
-
-            chatBox.scrollTop = chatBox.scrollHeight;
+            if (mode === "initial") {
+                chatBox.replaceChildren();
+                firstMessageId = 0;
+                lastMessageId = 0;
+                hasOlderMessages = Boolean(result.has_older);
+                result.messages.forEach((message) => {
+                    chatBox.appendChild(createMessageBubble(message));
+                    const messageId = Number(message.id) || 0;
+                    if (firstMessageId === 0) {
+                        firstMessageId = messageId;
+                    }
+                    lastMessageId = Math.max(lastMessageId, messageId);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } else if (mode === "older") {
+                const bubbles = result.messages.map(createMessageBubble);
+                if (bubbles.length > 0) {
+                    chatBox.prepend(...bubbles);
+                    firstMessageId = Number(result.messages[0].id) || firstMessageId;
+                    chatBox.scrollTop = previousScrollTop + chatBox.scrollHeight - previousScrollHeight;
+                }
+                hasOlderMessages = Boolean(result.has_older);
+            } else {
+                result.messages.forEach((message) => {
+                    chatBox.appendChild(createMessageBubble(message));
+                    lastMessageId = Math.max(lastMessageId, Number(message.id) || 0);
+                });
+                if (result.messages.length > 0 && followLatest) {
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            }
+            updateLoadOlderButton();
             showStatus("");
         } catch (error) {
             if (!controller.signal.aborted && error.name !== "AbortError") {
@@ -116,6 +173,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 activeLoadController = null;
                 activeLoadTarget = null;
             }
+            loadingOlderMessages = false;
+            updateLoadOlderButton();
         }
     }
 
@@ -163,7 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             input.value = "";
             showStatus("");
-            await loadMessages();
+            await loadMessages("initial");
         } catch (error) {
             showStatus(error.message);
         } finally {
@@ -195,6 +254,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             activeTargetUserId = targetUserId;
             conversationType = targetType;
+            firstMessageId = 0;
+            lastMessageId = 0;
+            hasOlderMessages = false;
+            updateLoadOlderButton();
             form.dataset.targetUserId = String(targetUserId);
             form.dataset.conversationType = targetType;
             const typeInput = form.querySelector('input[name="conversation_type"]');
@@ -210,11 +273,19 @@ document.addEventListener("DOMContentLoaded", () => {
             updateSendButton();
             chatBox.replaceChildren();
             showStatus("Loading messages...");
-            loadMessages();
+            loadMessages("initial");
         });
     });
 
+    if (loadOlderButton) {
+        loadOlderButton.addEventListener("click", () => {
+            if (!loadingOlderMessages && hasOlderMessages) {
+                loadMessages("older");
+            }
+        });
+    }
+
     updateSendButton();
-    loadMessages();
+    loadMessages("initial");
     setInterval(loadMessages, 3000);
 });
