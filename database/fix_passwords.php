@@ -60,6 +60,7 @@ require_once __DIR__ . '/../config/db.php';
 $hash = password_hash('password123', PASSWORD_DEFAULT);
 $update = $pdo->prepare('UPDATE users SET password_hash = :hash');
 $update->execute(['hash' => $hash]);
+$pdo->exec('DELETE FROM remember_tokens');
 
 header('Content-Type: text/plain; charset=utf-8');
 header('Cache-Control: no-store');

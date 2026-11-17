@@ -45,33 +45,73 @@ if (!function_exists('curl_init')) {
 $loginUrl = 'http://localhost/university_sports/auth/login.php';
 $curl = curl_init($loginUrl);
 curl_setopt_array($curl, [
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => http_build_query([
-        'email' => 'hos@uni.edu',
-        'password' => 'password123',
-    ]),
-    CURLOPT_HTTPHEADER => [
-        'Content-Type: application/x-www-form-urlencoded',
-    ],
     CURLOPT_HEADER => true,
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_FOLLOWLOCATION => false,
     CURLOPT_CONNECTTIMEOUT => 5,
     CURLOPT_TIMEOUT => 15,
+    CURLOPT_COOKIEFILE => '',
 ]);
 
-$response = curl_exec($curl);
+$initialResponse = curl_exec($curl);
 $curlError = curl_error($curl);
+$initialResponse = is_string($initialResponse) ? $initialResponse : '';
+$initialHeaderSize = (int) curl_getinfo($curl, CURLINFO_HEADER_SIZE);
+$initialHeaders = substr($initialResponse, 0, $initialHeaderSize);
+$initialBody = substr($initialResponse, $initialHeaderSize);
+$hasInitialSessionCookie = preg_match('/^Set-Cookie:\s*PHPSESSID=[^;\r\n]+/im', $initialHeaders) === 1;
+$csrfToken = '';
+if (preg_match(
+    '/<input type="hidden" name="csrf_token" value="([a-f0-9]{64})">/',
+    $initialBody,
+    $csrfMatches
+)) {
+    $csrfToken = $csrfMatches[1];
+}
+
+$csrfRejected = false;
+if ($initialResponse !== '' && $csrfToken !== '') {
+    curl_setopt_array($curl, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'email' => 'hos@uni.edu',
+            'password' => 'password123',
+            'csrf_token' => 'invalid',
+        ]),
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/x-www-form-urlencoded',
+        ],
+    ]);
+    $invalidResponse = curl_exec($curl);
+    $invalidResponse = is_string($invalidResponse) ? $invalidResponse : '';
+    $invalidHeaderSize = (int) curl_getinfo($curl, CURLINFO_HEADER_SIZE);
+    $invalidHeaders = substr($invalidResponse, 0, $invalidHeaderSize);
+    $invalidBody = substr($invalidResponse, $invalidHeaderSize);
+    $csrfRejected = curl_getinfo($curl, CURLINFO_HTTP_CODE) === 200
+        && strpos($invalidBody, 'Your form session expired.') !== false
+        && preg_match('/^Location:/im', $invalidHeaders) !== 1;
+
+    curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query([
+        'email' => 'hos@uni.edu',
+        'password' => 'password123',
+        'csrf_token' => $csrfToken,
+    ]));
+}
+
+$response = $initialResponse !== '' && $csrfToken !== ''
+    ? curl_exec($curl)
+    : false;
+$response = is_string($response) ? $response : '';
+$responseHeaderSize = (int) curl_getinfo($curl, CURLINFO_HEADER_SIZE);
+$responseHeaders = substr($response, 0, $responseHeaderSize);
+$responseBody = substr($response, $responseHeaderSize);
 $httpStatus = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-$headerSize = (int) curl_getinfo($curl, CURLINFO_HEADER_SIZE);
+$curlError = $curlError !== '' ? $curlError : curl_error($curl);
 curl_close($curl);
 
-$response = is_string($response) ? $response : '';
-$responseHeaders = substr($response, 0, $headerSize);
-$responseBody = substr($response, $headerSize);
-$hasSessionCookie = preg_match('/^Set-Cookie:\s*PHPSESSID=[^;\r\n]+/im', $responseHeaders) === 1;
+$hasSessionCookie = $hasInitialSessionCookie
+    || preg_match('/^Set-Cookie:\s*PHPSESSID=[^;\r\n]+/im', $responseHeaders) === 1;
 $location = '';
-
 if (preg_match('/^Location:\s*(.+)$/im', $responseHeaders, $matches)) {
     $location = trim($matches[1]);
 }
@@ -106,18 +146,55 @@ $sameHost = !isset($locationParts['host'])
 $hasExpectedRedirect = $location !== ''
     && $sameHost
     && $actualPath === $expectedPath;
+
+$wrongRoleRedirect = false;
+if ($response !== '' && $hasExpectedRedirect) {
+    curl_setopt_array($curl, [
+        CURLOPT_URL => 'http://localhost/university_sports/coach/dashboard.php',
+        CURLOPT_HTTPGET => true,
+        CURLOPT_POSTFIELDS => null,
+        CURLOPT_HTTPHEADER => [],
+    ]);
+    $wrongRoleResponse = curl_exec($curl);
+    $wrongRoleResponse = is_string($wrongRoleResponse) ? $wrongRoleResponse : '';
+    $wrongRoleHeaderSize = (int) curl_getinfo($curl, CURLINFO_HEADER_SIZE);
+    $wrongRoleHeaders = substr($wrongRoleResponse, 0, $wrongRoleHeaderSize);
+    $wrongRoleStatus = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    $wrongRoleLocation = '';
+    if (preg_match('/^Location:\s*(.+)$/im', $wrongRoleHeaders, $matches)) {
+        $wrongRoleLocation = trim($matches[1]);
+    }
+
+    $wrongRoleParts = parse_url($wrongRoleLocation);
+    $wrongRolePath = is_array($wrongRoleParts) ? ($wrongRoleParts['path'] ?? '') : '';
+    if ($wrongRolePath !== '' && substr($wrongRolePath, 0, 1) !== '/') {
+        $wrongRolePath = dirname('/university_sports/coach/dashboard.php') . '/' . $wrongRolePath;
+    }
+    $expectedOwnDashboard = $normalizePath('/university_sports/hos/dashboard.php');
+    $wrongRoleSameHost = !isset($wrongRoleParts['host'])
+        || strtolower($wrongRoleParts['host']) === strtolower((string) parse_url($loginUrl, PHP_URL_HOST));
+    $wrongRoleRedirect = $wrongRoleStatus >= 300
+        && $wrongRoleStatus < 400
+        && $wrongRoleSameHost
+        && $normalizePath($wrongRolePath) === $expectedOwnDashboard;
+}
+
 $passed = $response !== ''
     && $hasSessionCookie
+    && $csrfRejected
     && $hasExpectedRedirect
+    && $wrongRoleRedirect
     && $httpStatus >= 300
     && $httpStatus < 400;
 
 $details = [
     'HTTP status: ' . $httpStatus,
     'PHPSESSID cookie: ' . ($hasSessionCookie ? 'present' : 'missing'),
+    'Missing/invalid CSRF rejected: ' . ($csrfRejected ? 'yes' : 'no'),
     'Location header: ' . ($location !== '' ? $location : '(missing)'),
-    'Expected redirect (resolved from ../hos/dashboard.php): ' . $expectedPath,
+    'Expected Head of Sports dashboard redirect: ' . $expectedPath,
     'Actual redirect path: ' . ($locationPath !== '' ? $actualPath : '(missing)'),
+    'Wrong-role dashboard redirects to own dashboard: ' . ($wrongRoleRedirect ? 'yes' : 'no'),
 ];
 
 if ($curlError !== '') {

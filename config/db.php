@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+error_reporting(E_ALL);
+
 $dbHost = '127.0.0.1';
 $dbName = 'university_sports';
 $dbUser = 'root';

@@ -8,12 +8,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const input = document.getElementById("chat-input");
     const status = document.querySelector("[data-chat-status]");
-    const targetSelect = document.querySelector("[data-chat-target]");
+    const contactButtons = Array.from(document.querySelectorAll("[data-chat-contact]"));
+    const sendButton = form.querySelector('button[type="submit"]');
     const basePath = document.body.dataset.basePath || "";
-    const conversationType = form.dataset.conversationType;
+    let conversationType = form.dataset.conversationType;
+    let activeTargetUserId = form.dataset.targetUserId
+        ? Number(form.dataset.targetUserId)
+        : null;
     const csrfToken = form.dataset.csrfToken;
     const currentUserId = Number(form.dataset.currentUserId);
-    let loading = false;
+    const requiresContact = form.dataset.requiresContact === "true";
+    let activeLoadController = null;
+    let activeLoadTarget = null;
+    let sendingMessage = false;
+    const noAvailableContacts = requiresContact && contactButtons.length === 0;
 
     function showStatus(message) {
         if (status) {
@@ -22,25 +30,42 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function getTargetUserId() {
-        const selectedId = targetSelect
-            ? targetSelect.value
-            : form.dataset.targetUserId;
-        return selectedId ? Number(selectedId) : null;
+        return activeTargetUserId;
+    }
+
+    function updateSendButton() {
+        if (sendButton) {
+            sendButton.disabled = sendingMessage
+                || noAvailableContacts
+                || Boolean(requiresContact && !activeTargetUserId);
+        }
     }
 
     async function loadMessages() {
-        if (loading) {
-            return;
-        }
-
         const targetUserId = getTargetUserId();
-        if (targetSelect && !targetUserId) {
+        if (requiresContact && !targetUserId) {
+            if (activeLoadController) {
+                activeLoadController.abort();
+                activeLoadController = null;
+                activeLoadTarget = null;
+            }
             chatBox.replaceChildren();
             showStatus("Select a conversation partner to view messages.");
             return;
         }
 
-        loading = true;
+        const requestTarget = `${conversationType}:${targetUserId || ""}`;
+        if (activeLoadController) {
+            if (activeLoadTarget === requestTarget) {
+                return;
+            }
+            activeLoadController.abort();
+        }
+
+        const controller = new AbortController();
+        activeLoadController = controller;
+        activeLoadTarget = requestTarget;
+
         try {
             const params = new URLSearchParams({ conversation_type: conversationType });
             if (targetUserId) {
@@ -49,9 +74,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const response = await fetch(
                 `${basePath}/api/fetch_messages.php?${params.toString()}`,
-                { credentials: "same-origin" }
+                { credentials: "same-origin", signal: controller.signal }
             );
+            if (controller.signal.aborted) {
+                return;
+            }
+
             const result = await response.json();
+            if (controller.signal.aborted) {
+                return;
+            }
 
             if (!response.ok) {
                 throw new Error(result.error || "Unable to load messages.");
@@ -76,24 +108,35 @@ document.addEventListener("DOMContentLoaded", () => {
             chatBox.scrollTop = chatBox.scrollHeight;
             showStatus("");
         } catch (error) {
-            showStatus(error.message);
+            if (!controller.signal.aborted && error.name !== "AbortError") {
+                showStatus(error.message);
+            }
         } finally {
-            loading = false;
+            if (activeLoadController === controller) {
+                activeLoadController = null;
+                activeLoadTarget = null;
+            }
         }
     }
 
     async function sendMessage() {
+        if (sendingMessage) {
+            return;
+        }
+
         const body = input.value.trim();
         if (!body) {
             return;
         }
 
         const targetUserId = getTargetUserId();
-        if (targetSelect && !targetUserId) {
+        if (requiresContact && !targetUserId) {
             showStatus("Select a conversation partner before sending a message.");
             return;
         }
 
+        sendingMessage = true;
+        updateSendButton();
         const payload = {
             conversation_type: conversationType,
             body
@@ -123,6 +166,9 @@ document.addEventListener("DOMContentLoaded", () => {
             await loadMessages();
         } catch (error) {
             showStatus(error.message);
+        } finally {
+            sendingMessage = false;
+            updateSendButton();
         }
     }
 
@@ -138,10 +184,37 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    if (targetSelect) {
-        targetSelect.addEventListener("change", loadMessages);
-    }
+    contactButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            const targetUserId = Number(button.dataset.targetUserId);
+            const targetType = button.dataset.conversationType;
+            if (!targetUserId || !targetType
+                || (activeTargetUserId === targetUserId && conversationType === targetType)) {
+                return;
+            }
 
+            activeTargetUserId = targetUserId;
+            conversationType = targetType;
+            form.dataset.targetUserId = String(targetUserId);
+            form.dataset.conversationType = targetType;
+            const typeInput = form.querySelector('input[name="conversation_type"]');
+            if (typeInput) {
+                typeInput.value = targetType;
+            }
+            contactButtons.forEach((contactButton) => {
+                contactButton.setAttribute(
+                    "aria-pressed",
+                    String(contactButton === button)
+                );
+            });
+            updateSendButton();
+            chatBox.replaceChildren();
+            showStatus("Loading messages...");
+            loadMessages();
+        });
+    });
+
+    updateSendButton();
     loadMessages();
     setInterval(loadMessages, 3000);
 });

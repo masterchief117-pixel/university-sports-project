@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 $scriptPath = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/index.php');
-$basePath = rtrim(dirname($scriptPath), '/.');
-$basePath = $basePath === '' ? '' : '/' . ltrim($basePath, '/');
+$basePath = rtrim(str_replace('\\', '/', dirname($scriptPath)), '/.');
+$basePath = $basePath === '/' ? '' : $basePath;
 $stylesheetUrl = $basePath . '/assets/css/style.css';
 $loginUrl = $basePath . '/auth/login.php';
 ?>

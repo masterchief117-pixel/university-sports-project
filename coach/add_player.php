@@ -1,48 +1,55 @@
 <?php
-session_start();
+declare(strict_types=1);
 
-// Force strict error reporting
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+require_once __DIR__ . '/../includes/auth_check.php';
+require_role('coach');
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/user_accounts.php';
 
-require_once '../config/db.php';
-
-// Verify session
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'coach') {
-    die("Error: You must be logged in as a coach to add players.");
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    exit('Method not allowed.');
 }
 
-// Ensure the form was submitted via POST
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $sport_id = $_SESSION['sport_id'];
-
-    // Validate inputs
-    if (empty($name) || empty($email) || empty($password)) {
-        die("Error: All fields are required. Please go back and try again.");
-    }
-
-    try {
-        // Hash the password securely
-        $password_hash = password_hash($password, PASSWORD_DEFAULT);
-        
-        // Insert into the database
-        $stmt = $pdo->prepare("INSERT INTO users (name, email, password_hash, role, sport_id) VALUES (?, ?, ?, 'player', ?)");
-        $stmt->execute([$name, $email, $password_hash, $sport_id]);
-        
-        // Success! Set a flash message and redirect back to dashboard
-        $_SESSION['coach_dashboard_flash'] = "Player added successfully!";
-        header("Location: dashboard.php");
-        exit;
-
-    } catch (PDOException $e) {
-        // If the database rejects it (e.g. duplicate email), this prints the exact reason
-        die("Database Error: " . $e->getMessage());
-    }
-} else {
-    die("Error: Invalid request method. The form must use POST.");
+$tokenInput = $_POST['csrf_token'] ?? '';
+$csrfToken = is_string($tokenInput) ? $tokenInput : '';
+if (!csrf_token_is_valid($csrfToken)) {
+    http_response_code(403);
+    exit('Invalid request token.');
 }
-?>
+
+$nameInput = $_POST['name'] ?? '';
+$emailInput = $_POST['email'] ?? '';
+$passwordInput = $_POST['password'] ?? '';
+$name = is_string($nameInput) ? trim($nameInput) : '';
+$email = is_string($emailInput) ? trim($emailInput) : '';
+$password = is_string($passwordInput) ? $passwordInput : '';
+$sportId = $_SESSION['sport_id'] ?? null;
+
+if ($name === '' || strlen($name) > 120 || !filter_var($email, FILTER_VALIDATE_EMAIL)
+    || strlen($email) > 254 || strlen($password) < 10 || $sportId === null) {
+    $_SESSION['coach_dashboard_flash'] = 'Enter valid player details and try again.';
+    $_SESSION['coach_dashboard_flash_type'] = 'error';
+    header('Location: ' . app_url('/coach/dashboard.php'));
+    exit;
+}
+
+try {
+    create_player_account($pdo, $name, $email, $password, (int) $sportId);
+} catch (PDOException $exception) {
+    if ($exception->getCode() !== '23000'
+        || (int) ($exception->errorInfo[1] ?? 0) !== 1062) {
+        throw $exception;
+    }
+
+    $_SESSION['coach_dashboard_flash'] = 'An account with that email already exists.';
+    $_SESSION['coach_dashboard_flash_type'] = 'error';
+    header('Location: ' . app_url('/coach/dashboard.php'));
+    exit;
+}
+
+$_SESSION['coach_dashboard_flash'] = 'Player added successfully!';
+$_SESSION['coach_dashboard_flash_type'] = 'success';
+header('Location: ' . app_url('/coach/dashboard.php'));
+exit;

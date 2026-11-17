@@ -72,6 +72,12 @@ if ($update->rowCount() !== 1) {
     throw new RuntimeException('HOS account hos@uni.edu was not found or was not updated.');
 }
 
+$revokeTokens = $pdo->prepare(
+    'DELETE FROM remember_tokens
+     WHERE user_id = (SELECT id FROM users WHERE email = :email)'
+);
+$revokeTokens->execute(['email' => 'hos@uni.edu']);
+
 if (!$isCli) {
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: no-store');

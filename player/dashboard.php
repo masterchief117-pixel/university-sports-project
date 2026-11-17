@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
 require_once __DIR__ . '/../includes/auth_check.php';
 require_role('player');
 
@@ -21,6 +24,9 @@ $sport_id = $playerAccount['sport_id'] === null ? null : (int) $playerAccount['s
 $requested_sport_id = $playerAccount['requested_sport_id'] === null
     ? null
     : (int) $playerAccount['requested_sport_id'];
+$playerStatus = $sport_id === null
+    ? ($requested_sport_id === null ? 'No request' : 'Request pending')
+    : 'On a team';
 $_SESSION['sport_id'] = $sport_id;
 $sportName = 'Unassigned';
 $coaches = [];
@@ -66,15 +72,50 @@ if ($sport_id !== null) {
 }
 
 $player_dashboard_flash = $_SESSION['player_dashboard_flash'] ?? '';
+$player_dashboard_flash_type = $_SESSION['player_dashboard_flash_type'] ?? 'success';
 unset($_SESSION['player_dashboard_flash']);
+unset($_SESSION['player_dashboard_flash_type']);
 $playerName = $_SESSION['name'] ?? 'Player';
+$bodyClass = 'sports-dashboard';
 $pageTitle = 'Player dashboard';
 require __DIR__ . '/../includes/header.php';
 ?>
 <h1>Welcome, <?= htmlspecialchars($playerName, ENT_QUOTES, 'UTF-8') ?></h1>
 <?php if ($player_dashboard_flash !== ''): ?>
-    <p class="transfer-notice" role="status"><?= htmlspecialchars($player_dashboard_flash, ENT_QUOTES, 'UTF-8') ?></p>
+    <p class="transfer-notice<?= $player_dashboard_flash_type === 'error' ? ' transfer-notice-error' : '' ?>"
+       role="<?= $player_dashboard_flash_type === 'error' ? 'alert' : 'status' ?>">
+        <?= htmlspecialchars($player_dashboard_flash, ENT_QUOTES, 'UTF-8') ?>
+    </p>
 <?php endif; ?>
+
+<section class="coach-overview" aria-label="Player overview">
+    <article class="coach-overview-card">
+        <span class="coach-overview-label">Sport</span>
+        <strong class="coach-overview-value coach-overview-sport">
+            <?= htmlspecialchars($sportName, ENT_QUOTES, 'UTF-8') ?>
+        </strong>
+        <span class="coach-overview-detail">Current team assignment</span>
+    </article>
+    <article class="coach-overview-card">
+        <span class="coach-overview-label">Coaches</span>
+        <strong class="coach-overview-value"><?= count($coaches) ?></strong>
+        <span class="coach-overview-detail">Assigned to your sport</span>
+    </article>
+    <article class="coach-overview-card">
+        <span class="coach-overview-label">Teammates</span>
+        <strong class="coach-overview-value"><?= count($teammates) ?></strong>
+        <span class="coach-overview-detail">Other players on your team</span>
+    </article>
+    <article class="coach-overview-card">
+        <span class="coach-overview-label">Status</span>
+        <strong class="coach-overview-value"><?= htmlspecialchars($playerStatus, ENT_QUOTES, 'UTF-8') ?></strong>
+        <span class="coach-overview-detail">
+            <?= $sport_id === null
+                ? 'Your team assignment status'
+                : 'You are assigned to a team' ?>
+        </span>
+    </article>
+</section>
 
 <?php if ($sport_id === null): ?>
     <section class="transfer-portal" aria-labelledby="transfer-portal-heading">
@@ -106,35 +147,118 @@ require __DIR__ . '/../includes/header.php';
         </form>
     </section>
 <?php else: ?>
-    <p>Sport: <strong><?= htmlspecialchars($sportName, ENT_QUOTES, 'UTF-8') ?></strong></p>
-    <h2>Your coaches</h2>
+    <div class="team-dashboard-grid">
+    <section class="coach-card dashboard-table-section" aria-labelledby="player-coaches-heading">
+    <h2 id="player-coaches-heading">Your coaches</h2>
     <?php if ($coaches === []): ?>
         <p>No coaches are assigned to your sport yet.</p>
     <?php else: ?>
-        <ul>
-            <?php foreach ($coaches as $coach): ?>
-                <li>
-                    <?= htmlspecialchars($coach['name'], ENT_QUOTES, 'UTF-8') ?>
-                    <a href="<?= htmlspecialchars(
-                        app_url('/player/coach_chat.php?target_user_id=' . (int) $coach['id']),
-                        ENT_QUOTES,
-                        'UTF-8'
-                    ) ?>">Message</a>
-                </li>
-            <?php endforeach; ?>
-        </ul>
+        <div class="dashboard-table-container" data-table-container>
+            <div class="dashboard-table-tools">
+                <div>
+                    <label for="player-coach-search">Search coaches</label>
+                    <input id="player-coach-search" type="search" data-table-search
+                           placeholder="Search coach name" autocomplete="off">
+                </div>
+                <p data-table-results aria-live="polite">
+                    Showing all <?= count($coaches) ?> <?= count($coaches) === 1 ? 'coach' : 'coaches' ?>.
+                </p>
+                <div class="dashboard-mobile-sort">
+                    <label for="player-coach-sort">Sort coaches</label>
+                    <select id="player-coach-sort" data-table-sort-select>
+                        <option value="0-asc">Name (A–Z)</option>
+                        <option value="0-desc">Name (Z–A)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-wrap dashboard-table-wrap">
+                <table class="dashboard-data-table" data-dashboard-table
+                       data-item-label="coach" data-item-label-plural="coaches">
+                    <thead>
+                        <tr>
+                            <th scope="col" aria-sort="ascending">
+                                <button class="dashboard-sort-button" type="button" data-table-sort="0">
+                                    Name <span aria-hidden="true" data-sort-indicator>↑</span>
+                                </button>
+                            </th>
+                            <th scope="col">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($coaches as $coach): ?>
+                            <tr data-table-row>
+                                <td data-label="Name" data-search-cell><?= htmlspecialchars($coach['name'], ENT_QUOTES, 'UTF-8') ?></td>
+                                <td data-label="Action">
+                                    <a class="button button-message" href="<?= htmlspecialchars(
+                                        app_url('/player/coach_chat.php?target_user_id=' . (int) $coach['id']),
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    ) ?>">Message</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        <tr data-table-no-results hidden>
+                            <td colspan="2">No coaches match your search.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     <?php endif; ?>
+    </section>
 
-    <h2>Your teammates</h2>
+    <section class="coach-card dashboard-table-section" aria-labelledby="player-teammates-heading">
+    <h2 id="player-teammates-heading">Your teammates</h2>
     <?php if ($teammates === []): ?>
         <p>No other players are assigned to your sport yet.</p>
     <?php else: ?>
-        <ul>
-            <?php foreach ($teammates as $teammate): ?>
-                <li><?= htmlspecialchars($teammate['name'], ENT_QUOTES, 'UTF-8') ?></li>
-            <?php endforeach; ?>
-        </ul>
+        <div class="dashboard-table-container" data-table-container>
+            <div class="dashboard-table-tools">
+                <div>
+                    <label for="player-teammate-search">Search teammates</label>
+                    <input id="player-teammate-search" type="search" data-table-search
+                           placeholder="Search teammate name" autocomplete="off">
+                </div>
+                <p data-table-results aria-live="polite">
+                    Showing all <?= count($teammates) ?> <?= count($teammates) === 1 ? 'teammate' : 'teammates' ?>.
+                </p>
+                <div class="dashboard-mobile-sort">
+                    <label for="player-teammate-sort">Sort teammates</label>
+                    <select id="player-teammate-sort" data-table-sort-select>
+                        <option value="0-asc">Name (A–Z)</option>
+                        <option value="0-desc">Name (Z–A)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-wrap dashboard-table-wrap">
+                <table class="dashboard-data-table" data-dashboard-table
+                       data-item-label="teammate" data-item-label-plural="teammates">
+                    <thead>
+                        <tr>
+                            <th scope="col" aria-sort="ascending">
+                                <button class="dashboard-sort-button" type="button" data-table-sort="0">
+                                    Player <span aria-hidden="true" data-sort-indicator>↑</span>
+                                </button>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($teammates as $teammate): ?>
+                            <tr data-table-row>
+                                <td class="roster-player-name" data-label="Player" data-search-cell>
+                                    <?= htmlspecialchars($teammate['name'], ENT_QUOTES, 'UTF-8') ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        <tr data-table-no-results hidden>
+                            <td colspan="1">No teammates match your search.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     <?php endif; ?>
+    </section>
 
     <div class="dashboard-links">
             <a class="button" href="<?= htmlspecialchars(app_url('/player/team_chat.php'), ENT_QUOTES, 'UTF-8') ?>">
@@ -144,5 +268,11 @@ require __DIR__ . '/../includes/header.php';
                 Message Coach
             </a>
     </div>
+    </div>
 <?php endif; ?>
+<script src="<?= htmlspecialchars(
+    app_url('/assets/js/dashboard-tables.js'),
+    ENT_QUOTES,
+    'UTF-8'
+) ?>" defer></script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

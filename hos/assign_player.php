@@ -1,25 +1,29 @@
 <?php
 declare(strict_types=1);
 
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
 require_once __DIR__ . '/../includes/auth_check.php';
 require_role('hos');
 
-function return_to_hos_dashboard(string $message): void
+function return_to_hos_dashboard(string $message, string $type = 'success'): void
 {
     $_SESSION['hos_dashboard_flash'] = $message;
+    $_SESSION['hos_dashboard_flash_type'] = $type;
     header('Location: ' . app_url('/hos/dashboard.php'));
     exit;
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-    return_to_hos_dashboard('Submit the transfer portal form to assign a player.');
+    return_to_hos_dashboard('Submit the transfer portal form to assign a player.', 'error');
 }
 
 $submittedToken = $_POST['csrf_token'] ?? '';
 $expectedToken = $_SESSION['csrf_token'] ?? '';
 if (!is_string($submittedToken) || !is_string($expectedToken)
     || $expectedToken === '' || !hash_equals($expectedToken, $submittedToken)) {
-    return_to_hos_dashboard('Player assignment failed: the request token was invalid.');
+    return_to_hos_dashboard('Player assignment failed: the request token was invalid.', 'error');
 }
 
 $playerIdInput = $_POST['player_id'] ?? null;
@@ -31,10 +35,11 @@ $sportId = is_string($sportIdInput)
     ? filter_var($sportIdInput, FILTER_VALIDATE_INT)
     : false;
 if ($playerId === false || $playerId < 1 || $sportId === false || $sportId < 1) {
-    return_to_hos_dashboard('Select a valid player and sport.');
+    return_to_hos_dashboard('Select a valid player and sport.', 'error');
 }
 
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/user_accounts.php';
 
 try {
     $pdo->beginTransaction();
@@ -43,7 +48,7 @@ try {
     $sportQuery->execute(['sport_id' => $sportId]);
     if ($sportQuery->fetchColumn() === false) {
         $pdo->rollBack();
-        return_to_hos_dashboard('Select a valid sport.');
+        return_to_hos_dashboard('Select a valid sport.', 'error');
     }
 
     $playerQuery = $pdo->prepare(
@@ -54,22 +59,15 @@ try {
     $playerQuery->execute(['player_id' => $playerId]);
     if ($playerQuery->fetchColumn() === false) {
         $pdo->rollBack();
-        return_to_hos_dashboard('Player is no longer unassigned and could not be placed.');
+        return_to_hos_dashboard(
+            'Player is no longer unassigned and could not be placed.',
+            'error'
+        );
     }
 
-    $update = $pdo->prepare(
-        "UPDATE users
-         SET sport_id = :sport_id, requested_sport_id = NULL
-         WHERE id = :player_id AND role = 'player' AND sport_id IS NULL"
-    );
-    $update->execute([
-        'sport_id' => $sportId,
-        'player_id' => $playerId,
-    ]);
-
-    if ($update->rowCount() !== 1) {
+    if (!assign_unassigned_player($pdo, $playerId, $sportId)) {
         $pdo->rollBack();
-        return_to_hos_dashboard('Player assignment failed. Please refresh and try again.');
+        return_to_hos_dashboard('Player assignment failed. Please refresh and try again.', 'error');
     }
 
     $pdo->commit();
@@ -78,7 +76,7 @@ try {
         $pdo->rollBack();
     }
     error_log($exception->getMessage());
-    return_to_hos_dashboard('Player assignment failed. Please try again.');
+    return_to_hos_dashboard('Player assignment failed. Please try again.', 'error');
 }
 
 return_to_hos_dashboard('Player assigned successfully.');

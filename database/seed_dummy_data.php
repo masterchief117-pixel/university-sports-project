@@ -115,4 +115,4 @@ try {
 
 header('Content-Type: text/plain; charset=utf-8');
 header('Cache-Control: no-store');
-echo 'Dummy data injected successfully!';
+echo 'injection successful!';

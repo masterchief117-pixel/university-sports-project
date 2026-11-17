@@ -68,6 +68,7 @@ if (!$isCli) {
 
 require_once __DIR__ . '/../config/db.php';
 
+$pdo->exec('TRUNCATE TABLE remember_tokens');
 $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
 try {
     $pdo->exec('TRUNCATE TABLE users');

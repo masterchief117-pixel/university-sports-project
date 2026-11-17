@@ -80,6 +80,11 @@ function get_chat_context(PDO $pdo, string $type, ?int $targetUserId): array
             json_error('A sport must be assigned to use player and coach chat.', 403);
         }
         $allowedCounterpartRole = $actorRole === 'player' ? 'coach' : 'player';
+    } elseif ($type === 'player_player' && $actorRole === 'player') {
+        if ($sport_id === null) {
+            json_error('A sport must be assigned to use player chat.', 403);
+        }
+        $allowedCounterpartRole = 'player';
     } elseif ($type === 'coach_hos' && in_array($actorRole, ['coach', 'hos'], true)) {
         $allowedCounterpartRole = $actorRole === 'coach' ? 'hos' : 'coach';
     } else {
@@ -87,16 +92,21 @@ function get_chat_context(PDO $pdo, string $type, ?int $targetUserId): array
     }
 
     if ($targetUserId === null) {
-        if ($type === 'player_coach') {
+        if (in_array($type, ['player_coach', 'player_player'], true)) {
+            $idCondition = $type === 'player_player' ? ' AND id <> :actor_id' : '';
             $counterpartQuery = $pdo->prepare(
                 'SELECT id FROM users
-                 WHERE role = :role AND sport_id = :sport_id
+                 WHERE role = :role AND sport_id = :sport_id' . $idCondition . '
                  ORDER BY id'
             );
-            $counterpartQuery->execute([
+            $parameters = [
                 'role' => $allowedCounterpartRole,
                 'sport_id' => $sport_id,
-            ]);
+            ];
+            if ($type === 'player_player') {
+                $parameters['actor_id'] = $actorId;
+            }
+            $counterpartQuery->execute($parameters);
         } else {
             $counterpartQuery = $pdo->prepare(
                 'SELECT id FROM users WHERE role = :role ORDER BY id'
@@ -125,9 +135,9 @@ function get_chat_context(PDO $pdo, string $type, ?int $targetUserId): array
         json_error('That conversation partner is not allowed.', 403);
     }
 
-    if ($type === 'player_coach') {
+    if (in_array($type, ['player_coach', 'player_player'], true)) {
         if ($counterpart['sport_id'] === null || (int) $counterpart['sport_id'] !== $sport_id) {
-            json_error('You can only chat with a player or coach in your sport.', 403);
+            json_error('You can only chat with conversation partners in your sport.', 403);
         }
         $sport_id = (int) $counterpart['sport_id'];
     } else {

@@ -9,6 +9,7 @@ A PHP and MySQL portal for university sports teams. Players, coaches, and the He
 - **Head of Sports:** Review roster summaries, message coaches, and assign unassigned players through the transfer portal.
 - **Chat:** Session-protected message APIs support team and one-to-one conversations, with messages refreshed by the chat interface.
 - **Role boundaries:** Players and the HOS do not have a direct communication channel.
+- **Account security:** Public registration creates player accounts only. Login supports a rotating, hashed 30-day remember token; the browser stores it in an HttpOnly, SameSite cookie.
 
 ## Requirements
 
@@ -27,6 +28,10 @@ A PHP and MySQL portal for university sports teams. Players, coaches, and the He
 
 The default database configuration expects MySQL at `127.0.0.1`, database `university_sports`, and the local XAMPP `root` account with a blank password. Change these settings to match your local environment.
 
+For an existing database, apply `database/migrations/001_remember_tokens.sql` before using Remember Me and `database/migrations/002_player_player_conversations.sql` before using direct player chat. Both migrations preserve user data. The fresh-install schema includes both structures.
+
+For legacy chat tables, run `php config\setup_chat_db.php` from the project root to add the message recipient/read-state columns expected by chat integrations. The setup script is command-line-only.
+
 ## Project layout
 
 ```text
@@ -40,7 +45,7 @@ database/            SQL schema and local data utilities
 hos/                 Head of Sports dashboard and assignment actions
 includes/            Authentication checks and shared chat UI/helpers
 player/              Player dashboard, sport requests, and chat pages
-tests/               Local login-routing test
+tests/               Local authentication and regression tests
 index.php            Public landing page
 ```
 
@@ -62,4 +67,22 @@ With Apache and MySQL running and the HOS test account configured, run:
 php tests\test_login.php
 ```
 
-The test uses cURL to check the login session cookie and HOS dashboard redirect. It is also restricted to localhost when opened through the browser.
+The test uses cURL to check CSRF rejection, the login session cookie, the HOS dashboard redirect, and redirection from a wrong-role dashboard. It is also restricted to localhost when opened through the browser.
+
+## Player account data-flow test
+
+The database-independent test verifies that player creation stores a hashed password and the requested sport, unassigned players can request and receive a sport, assignment clears `requested_sport_id`, and dropping a player clears `sport_id` without deleting the account:
+
+```powershell
+php tests\test_player_account_flow.php
+```
+
+This test requires PDO SQLite.
+
+## Chat client test
+
+The Node.js test verifies that overlapping submissions send only one message and restore the send button when the request completes:
+
+```powershell
+node tests\test_chat.js
+```

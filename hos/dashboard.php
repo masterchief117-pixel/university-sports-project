@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
 require_once __DIR__ . '/../includes/auth_check.php';
 require_role('hos');
 
@@ -35,57 +38,171 @@ $transferPlayers = $transferQuery->fetchAll();
 $availableSportsQuery = $pdo->query('SELECT id, name FROM sports ORDER BY name');
 $availableSports = $availableSportsQuery->fetchAll();
 $hosDashboardFlash = $_SESSION['hos_dashboard_flash'] ?? '';
+$hosDashboardFlashType = $_SESSION['hos_dashboard_flash_type'] ?? 'success';
 unset($_SESSION['hos_dashboard_flash']);
+unset($_SESSION['hos_dashboard_flash_type']);
 $hosName = $_SESSION['name'] ?? 'Head of Sports';
+$totalPlayers = array_sum(array_map(
+    static fn (array $summary): int => (int) $summary['player_count'],
+    $sportSummary
+));
+$sportCount = count($sportSummary);
+$coachCount = count($coaches);
+$pendingRequestCount = count($transferPlayers);
+$bodyClass = 'sports-dashboard';
 $pageTitle = 'Head of Sports dashboard';
 require __DIR__ . '/../includes/header.php';
 ?>
 <h1>Welcome, <?= htmlspecialchars($hosName, ENT_QUOTES, 'UTF-8') ?></h1>
 <?php if ($hosDashboardFlash !== ''): ?>
-    <p class="transfer-notice" role="status"><?= htmlspecialchars($hosDashboardFlash, ENT_QUOTES, 'UTF-8') ?></p>
+    <p class="transfer-notice<?= $hosDashboardFlashType === 'error' ? ' transfer-notice-error' : '' ?>"
+       role="<?= $hosDashboardFlashType === 'error' ? 'alert' : 'status' ?>">
+        <?= htmlspecialchars($hosDashboardFlash, ENT_QUOTES, 'UTF-8') ?>
+    </p>
 <?php endif; ?>
 
-<h2>Roster summary by sport</h2>
-<div class="table-wrap">
-    <table>
-        <thead>
-            <tr><th>Sport</th><th>Players</th><th>Coaches</th></tr>
-        </thead>
-        <tbody>
-            <?php foreach ($sportSummary as $summary): ?>
-                <tr>
-                    <td><?= htmlspecialchars($summary['name'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= (int) $summary['player_count'] ?></td>
-                    <td><?= (int) $summary['coach_count'] ?></td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-</div>
+<section class="coach-overview" aria-label="Portal overview">
+    <article class="coach-overview-card">
+        <span class="coach-overview-label">Sports</span>
+        <strong class="coach-overview-value"><?= $sportCount ?></strong>
+        <span class="coach-overview-detail">Available sports</span>
+    </article>
+    <article class="coach-overview-card">
+        <span class="coach-overview-label">Players</span>
+        <strong class="coach-overview-value"><?= $totalPlayers ?></strong>
+        <span class="coach-overview-detail">Assigned to a sport</span>
+    </article>
+    <article class="coach-overview-card">
+        <span class="coach-overview-label">Coaches</span>
+        <strong class="coach-overview-value"><?= $coachCount ?></strong>
+        <span class="coach-overview-detail">Registered coaches</span>
+    </article>
+    <article class="coach-overview-card">
+        <span class="coach-overview-label">Pending requests</span>
+        <strong class="coach-overview-value"><?= $pendingRequestCount ?></strong>
+        <span class="coach-overview-detail">Players awaiting placement</span>
+    </article>
+</section>
 
-<section class="transfer-portal-admin" aria-labelledby="hos-transfer-heading">
-    <h2 id="hos-transfer-heading">Transfer Portal (Unassigned Players)</h2>
+<section class="dashboard-table-section dashboard-table-container" data-table-container>
+    <h2>Roster summary by sport</h2>
+    <div class="dashboard-table-tools">
+        <div>
+            <label for="hos-sports-search">Search sports</label>
+            <input id="hos-sports-search" type="search" data-table-search
+                   placeholder="Search sport name" autocomplete="off">
+        </div>
+        <p data-table-results aria-live="polite">
+            Showing all <?= $sportCount ?> <?= $sportCount === 1 ? 'sport' : 'sports' ?>.
+        </p>
+        <div class="dashboard-mobile-sort">
+            <label for="hos-sports-sort">Sort sports</label>
+            <select id="hos-sports-sort" data-table-sort-select>
+                <option value="0-asc">Sport name (A–Z)</option>
+                <option value="0-desc">Sport name (Z–A)</option>
+                <option value="1-asc">Players (low to high)</option>
+                <option value="1-desc">Players (high to low)</option>
+                <option value="2-asc">Coaches (low to high)</option>
+                <option value="2-desc">Coaches (high to low)</option>
+            </select>
+        </div>
+    </div>
+    <div class="table-wrap dashboard-table-wrap">
+        <table class="dashboard-data-table" data-dashboard-table
+               data-item-label="sport" data-item-label-plural="sports">
+            <thead>
+                <tr>
+                    <th scope="col" aria-sort="ascending">
+                        <button class="dashboard-sort-button" type="button" data-table-sort="0">
+                            Sport <span aria-hidden="true" data-sort-indicator>↑</span>
+                        </button>
+                    </th>
+                    <th scope="col" aria-sort="none">
+                        <button class="dashboard-sort-button" type="button" data-table-sort="1">
+                            Players <span aria-hidden="true" data-sort-indicator>↕</span>
+                        </button>
+                    </th>
+                    <th scope="col" aria-sort="none">
+                        <button class="dashboard-sort-button" type="button" data-table-sort="2">
+                            Coaches <span aria-hidden="true" data-sort-indicator>↕</span>
+                        </button>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($sportSummary as $summary): ?>
+                    <tr data-table-row>
+                        <td data-label="Sport" data-search-cell><?= htmlspecialchars($summary['name'], ENT_QUOTES, 'UTF-8') ?></td>
+                        <td data-label="Players" data-search-cell><?= (int) $summary['player_count'] ?></td>
+                        <td data-label="Coaches" data-search-cell><?= (int) $summary['coach_count'] ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                <tr data-table-no-results hidden>
+                    <td colspan="3">No sports match your search.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="transfer-portal-admin dashboard-table-container" data-table-container
+         aria-labelledby="hos-transfer-heading">
+    <h2 id="hos-transfer-heading">Transfer Portal - Pending Requests</h2>
     <p>Review sport requests and assign unassigned players to a team.</p>
     <?php if ($transferPlayers === []): ?>
         <p>No unassigned players are waiting for placement.</p>
     <?php else: ?>
+        <div class="dashboard-table-tools">
+            <div>
+                <label for="hos-transfer-search">Search pending players</label>
+                <input id="hos-transfer-search" type="search" data-table-search
+                       placeholder="Search name, email, or requested sport" autocomplete="off">
+            </div>
+            <p data-table-results aria-live="polite">
+                Showing all <?= $pendingRequestCount ?> <?= $pendingRequestCount === 1 ? 'player' : 'players' ?>.
+            </p>
+            <div class="dashboard-mobile-sort">
+                <label for="hos-transfer-sort">Sort pending players</label>
+                <select id="hos-transfer-sort" data-table-sort-select>
+                    <option value="0-asc">Name (A–Z)</option>
+                    <option value="0-desc">Name (Z–A)</option>
+                    <option value="1-asc">Email (A–Z)</option>
+                    <option value="1-desc">Email (Z–A)</option>
+                    <option value="2-asc">Requested sport (A–Z)</option>
+                    <option value="2-desc">Requested sport (Z–A)</option>
+                </select>
+            </div>
+        </div>
         <div class="table-wrap transfer-table-wrap">
-            <table class="transfer-table">
+            <table class="transfer-table dashboard-data-table" data-dashboard-table
+                   data-item-label="player" data-item-label-plural="players">
                 <thead>
                     <tr>
-                        <th scope="col">Player Name</th>
-                        <th scope="col">Email</th>
-                        <th scope="col">Requested Sport</th>
+                        <th scope="col" aria-sort="ascending">
+                            <button class="dashboard-sort-button" type="button" data-table-sort="0">
+                                Player Name <span aria-hidden="true" data-sort-indicator>↑</span>
+                            </button>
+                        </th>
+                        <th scope="col" aria-sort="none">
+                            <button class="dashboard-sort-button" type="button" data-table-sort="1">
+                                Email <span aria-hidden="true" data-sort-indicator>↕</span>
+                            </button>
+                        </th>
+                        <th scope="col" aria-sort="none">
+                            <button class="dashboard-sort-button" type="button" data-table-sort="2">
+                                Requested Sport <span aria-hidden="true" data-sort-indicator>↕</span>
+                            </button>
+                        </th>
                         <th scope="col">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($transferPlayers as $transferPlayer): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($transferPlayer['name'], ENT_QUOTES, 'UTF-8') ?></td>
-                            <td><?= htmlspecialchars($transferPlayer['email'], ENT_QUOTES, 'UTF-8') ?></td>
-                            <td><?= htmlspecialchars($transferPlayer['requested_sport_name'] ?? 'No request', ENT_QUOTES, 'UTF-8') ?></td>
-                            <td>
+                        <tr data-table-row>
+                            <td data-label="Player Name" data-search-cell><?= htmlspecialchars($transferPlayer['name'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td data-label="Email" data-search-cell><?= htmlspecialchars($transferPlayer['email'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td data-label="Requested Sport" data-search-cell><?= htmlspecialchars($transferPlayer['requested_sport_name'] ?? 'No request', ENT_QUOTES, 'UTF-8') ?></td>
+                            <td data-label="Action">
                                 <form class="transfer-assign-form" method="post"
                                       action="<?= htmlspecialchars(app_url('/hos/assign_player.php'), ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="hidden" name="player_id" value="<?= (int) $transferPlayer['id'] ?>">
@@ -113,37 +230,83 @@ require __DIR__ . '/../includes/header.php';
                             </td>
                         </tr>
                     <?php endforeach; ?>
+                    <tr data-table-no-results hidden>
+                        <td colspan="4">No players match your search.</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     <?php endif; ?>
 </section>
 
-<h2>Coaches</h2>
-<?php if ($coaches === []): ?>
-    <p>No coaches are registered yet.</p>
-<?php else: ?>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr><th>Name</th><th>Sport</th><th>Action</th></tr>
-            </thead>
-            <tbody>
-                <?php foreach ($coaches as $coach): ?>
+<section class="dashboard-table-section dashboard-table-container" data-table-container>
+    <h2>Coaches</h2>
+    <?php if ($coaches === []): ?>
+        <p>No coaches are registered yet.</p>
+    <?php else: ?>
+        <div class="dashboard-table-tools">
+            <div>
+                <label for="hos-coach-search">Search coaches</label>
+                <input id="hos-coach-search" type="search" data-table-search
+                       placeholder="Search name or sport" autocomplete="off">
+            </div>
+            <p data-table-results aria-live="polite">
+                Showing all <?= $coachCount ?> <?= $coachCount === 1 ? 'coach' : 'coaches' ?>.
+            </p>
+            <div class="dashboard-mobile-sort">
+                <label for="hos-coach-sort">Sort coaches</label>
+                <select id="hos-coach-sort" data-table-sort-select>
+                    <option value="">Current order</option>
+                    <option value="0-asc">Name (A–Z)</option>
+                    <option value="0-desc">Name (Z–A)</option>
+                    <option value="1-asc">Sport (A–Z)</option>
+                    <option value="1-desc">Sport (Z–A)</option>
+                </select>
+            </div>
+        </div>
+        <div class="table-wrap dashboard-table-wrap">
+            <table class="dashboard-data-table" data-dashboard-table
+                   data-item-label="coach" data-item-label-plural="coaches">
+                <thead>
                     <tr>
-                        <td><?= htmlspecialchars($coach['name'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= htmlspecialchars($coach['sport_name'] ?? 'Unassigned', ENT_QUOTES, 'UTF-8') ?></td>
-                        <td>
-                            <a class="button" href="<?= htmlspecialchars(
-                                app_url('/hos/coach_chat.php?coach_id=' . (int) $coach['id']),
-                                ENT_QUOTES,
-                                'UTF-8'
-                            ) ?>">Message</a>
-                        </td>
+                        <th scope="col" aria-sort="none">
+                            <button class="dashboard-sort-button" type="button" data-table-sort="0">
+                                Name <span aria-hidden="true" data-sort-indicator>↕</span>
+                            </button>
+                        </th>
+                        <th scope="col" aria-sort="none">
+                            <button class="dashboard-sort-button" type="button" data-table-sort="1">
+                                Sport <span aria-hidden="true" data-sort-indicator>↕</span>
+                            </button>
+                        </th>
+                        <th scope="col">Action</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-<?php endif; ?>
+                </thead>
+                <tbody>
+                    <?php foreach ($coaches as $coach): ?>
+                        <tr data-table-row>
+                            <td data-label="Name" data-search-cell><?= htmlspecialchars($coach['name'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td data-label="Sport" data-search-cell><?= htmlspecialchars($coach['sport_name'] ?? 'Unassigned', ENT_QUOTES, 'UTF-8') ?></td>
+                            <td data-label="Action">
+                                <a class="button" href="<?= htmlspecialchars(
+                                    app_url('/hos/coach_chat.php?coach_id=' . (int) $coach['id']),
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                ) ?>">Message</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <tr data-table-no-results hidden>
+                        <td colspan="3">No coaches match your search.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+</section>
+<script src="<?= htmlspecialchars(
+    app_url('/assets/js/dashboard-tables.js'),
+    ENT_QUOTES,
+    'UTF-8'
+) ?>" defer></script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>
