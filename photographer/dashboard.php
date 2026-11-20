@@ -95,9 +95,9 @@ $pageTitle = 'Photographer dashboard';
                         <span class="photographer-step">01</span>
                         <div>
                             <p class="photographer-eyebrow">Start a collection</p>
-                            <h2>Create a gallery</h2>
+                            <h2>create a gallery</h2>
                         </div>
-                    </div>
+            </div>
                     <p class="photographer-card-description">
                         Give your photos a home. Choose the sport and pick a cover image.
                     </p>
@@ -199,7 +199,7 @@ $pageTitle = 'Photographer dashboard';
                      aria-labelledby="your-galleries-heading">
                 <div class="photographer-section-heading">
                     <div>
-                        <p class="photographer-eyebrow">Your library</p>
+                        <p class="photographer-eyebrow">The library</p>
                         <h2 id="your-galleries-heading">Manage Existing Galleries</h2>
                     </div>
                     <span class="photographer-count"><?= count($galleries) ?></span>
